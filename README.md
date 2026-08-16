@@ -1,44 +1,48 @@
-# LinkedIn Outreach Bot
+# Job Mail Automation (LinkedIn Outreach Bot)
 
-Paste a LinkedIn post and a recipient email. An LLM (via [OpenRouter](https://openrouter.ai))
-reads the post, drafts a personalized outreach email, attaches your resume,
-and sends it — no manual review step in between.
+Paste a LinkedIn post and a recipient email. An LLM reads the post, drafts a
+personalized outreach email, attaches your resume, and sends it — no review
+step in between.
 
-<p>
-  <img alt="Node" src="https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white">
-  <img alt="Express" src="https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white">
-  <img alt="OpenRouter" src="https://img.shields.io/badge/LLM-OpenRouter-6366F1">
-  <img alt="License" src="https://img.shields.io/badge/license-ISC-lightgrey">
-</p>
+**Live:** [job-mail-automation-one.vercel.app](https://job-mail-automation-one.vercel.app/)
 
 ## How it works
 
-1. Paste the post text + recipient email into the form.
-2. The configured model (any model on OpenRouter — GPT, Claude, Gemini, Llama, etc.)
-   extracts the concept — company, role, tech, whatever the post is actually
-   about — and drafts a subject + body from a hardcoded sender profile.
+1. You paste the post text + recipient email into the form.
+2. An LLM (via OpenRouter — defaults to `openai/gpt-4.1-mini`, swappable to
+   Claude, Gemini, Llama, or anything else on OpenRouter) extracts the
+   concept — company, role, tech, whatever the post is actually about — and
+   drafts a subject + body.
 3. A safety gate checks the draft isn't empty, isn't suspiciously short, and
    has no leftover placeholder text (like `[Company]`). If it fails, nothing
    sends — you get the reason back instead.
 4. If it passes, the email goes out via Gmail SMTP with your resume attached.
 
-**No review step, by design.** The safety gate is the only thing standing
-between a bad draft and a real recruiter's inbox — it blocks empty, too
-short, or placeholder-riddled drafts, but it can't catch a draft that's
-simply wrong in tone or fact. Worth spot-checking the `concept` and
-`subject` returned in the success response for the first several sends.
-
-## Stack
+## Tech stack
 
 - **Backend:** Node.js, Express 5
-- **LLM:** OpenRouter (model-agnostic — swap providers via one env var)
-- **Email:** Nodemailer over Gmail SMTP, with resume PDF attached automatically
-- **Frontend:** Single-page vanilla HTML/CSS form, dark theme
+- **LLM:** OpenRouter (OpenAI-compatible API, model-agnostic)
+- **Email:** Nodemailer via Gmail SMTP
+- **Frontend:** Static HTML/JS (`public/index.html`), served by Express
+- **Deployment:** Vercel (single serverless function serves both the API and the static frontend)
 
-## Setup
+## Project structure
+
+```
+server.js                      Express app + the /api/send-outreach route
+api/index.js                   Vercel serverless entrypoint (re-exports the Express app)
+vercel.json                    Routes all requests to the serverless function
+services/openrouterService.js  Prompt + call to OpenRouter, JSON parsing
+services/emailService.js       Nodemailer transport + resume attachment
+public/index.html              The form UI
+resume/                        Put resume.pdf here
+.env.example                   Copy to .env and fill in
+```
+
+## Local setup
 
 **1. Install dependencies**
-```bash
+```
 npm install
 ```
 
@@ -49,85 +53,46 @@ Drop your resume PDF into `resume/` and name it exactly `resume.pdf`.
 
 **3. Get an OpenRouter API key**
 
-Sign up and grab a key at [openrouter.ai/keys](https://openrouter.ai/keys).
+Free tier available at [openrouter.ai/keys](https://openrouter.ai/keys). Pick
+any model from [openrouter.ai/models](https://openrouter.ai/models) and set
+it as `OPENROUTER_MODEL`.
 
 **4. Get a Gmail App Password**
 
-Regular Gmail passwords don't work for SMTP. You need:
+Regular Gmail passwords don't work for SMTP anymore. You need:
 - 2-Step Verification turned on for your Google account
 - An App Password from [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 - Use that 16-character password, not your normal one
 
 **5. Configure environment variables**
-```bash
+```
 cp .env.example .env
 ```
-Then fill in `OPENROUTER_API_KEY`, `EMAIL_USER`, and `EMAIL_APP_PASSWORD`.
+Then fill in `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `EMAIL_USER`, and `EMAIL_APP_PASSWORD`.
 
 **6. Run it**
-```bash
+```
 npm start
 ```
 Open [http://localhost:3000](http://localhost:3000).
 
-## Environment variables
+## Deploying on Vercel
 
-| Variable               | Required | Description                                                              |
-|--------------------------|----------|---------------------------------------------------------------------------|
-| `OPENROUTER_API_KEY`    | Yes      | API key from OpenRouter                                                   |
-| `OPENROUTER_MODEL`      | No       | Model slug (default: `openai/gpt-4.1-mini`); any OpenRouter model works   |
-| `APP_URL`                | No       | Sent as `HTTP-Referer` header to OpenRouter (default: `localhost:3000`)   |
-| `EMAIL_USER`             | Yes      | Gmail address to send from                                                |
-| `EMAIL_APP_PASSWORD`     | Yes      | 16-character Gmail App Password                                           |
-| `PORT`                   | No       | Local server port (default: `3000`)                                       |
-| `RESUME_PATH`            | No       | Override path to resume PDF (default: `./resume/resume.pdf`)              |
-
-## Project structure
-
-```
-server.js                      Express app + the /api/send-outreach route
-services/openrouterService.js  Prompt + call to OpenRouter, JSON parsing
-services/emailService.js       Nodemailer transport + resume attachment
-public/index.html              The form UI
-resume/                        Put resume.pdf here (gitignored)
-.env.example                   Copy to .env and fill in
-```
-
-## API
-
-`POST /api/send-outreach`
-
-```json
-{
-  "postText": "the LinkedIn post text",
-  "recipientEmail": "someone@example.com"
-}
-```
-
-**Success (200)**
-```json
-{ "success": true, "concept": "...", "subject": "...", "body": "..." }
-```
-
-**Draft failed safety check (422)** — nothing was sent
-```json
-{ "error": "...", "draft": { "subject": "...", "body": "..." } }
-```
-
-**Draft generation or send failure (502)**
-```json
-{ "error": "..." }
-```
+1. Push this repo to GitHub (`.env` stays out automatically via `.gitignore`).
+2. Import the repo at [vercel.com/new](https://vercel.com/new). Framework preset: **Other** — no build step needed.
+3. In Project Settings → Environment Variables, add `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `APP_URL`, `EMAIL_USER`, `EMAIL_APP_PASSWORD`.
+4. Deploy. `api/index.js` + `vercel.json` handle routing everything (API and static frontend) through one serverless function.
 
 ## Notes
 
+- **No review step, by design.** The safety gate is the only thing standing
+  between a bad draft and a real recruiter's inbox — it blocks empty, too
+  short, or placeholder-riddled drafts, but it can't catch a draft that's
+  simply wrong in tone or fact. Worth spot-checking the `concept` and
+  `subject` returned in the success message for the first several sends.
 - **Gmail's sending limits** apply (roughly 500/day on a free account) —
   fine for personal outreach volume, not built for bulk sending.
 - **Swap the sender profile** in `services/openrouterService.js` if your
   positioning changes — it's hardcoded there, not pulled from anywhere.
-- **Secrets:** `.env` is gitignored — never commit real API keys or the
-  Gmail App Password. Rotate both immediately if either is ever exposed.
-
-## License
-
-ISC
+- **Model choice is a runtime setting** — change `OPENROUTER_MODEL` in `.env`
+  (or the Vercel dashboard) without touching code.
