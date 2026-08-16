@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn outreach</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14120F;
+    --surface: #1C1812;
+    --surface-2: #241F17;
+    --border: #2E2820;
+    --accent: #C08552;
+    --accent-bright: #D69B6B;
+    --text-primary: #EDE6D9;
+    --text-secondary: #A69C8C;
+    --text-muted: #6E6459;
+    --success: #8CAB6E;
+    --error: #D9695A;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .card {
+    width: 100%;
+    max-width: 640px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+    font-weight: 600;
+  }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0 0 32px;
+    line-height: 1.6;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  textarea, input[type="email"] {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  textarea { min-height: 160px; resize: vertical; line-height: 1.6; }
+  textarea:focus, input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(192, 133, 82, 0.15);
+  }
+  textarea::placeholder, input::placeholder { color: var(--text-muted); }
+  button {
+    width: 100%;
+    background: var(--accent);
+    color: #1A140D;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button:hover:not(:disabled) { background: var(--accent-bright); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .status {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.success { background: rgba(140, 171, 110, 0.1); border: 1px solid rgba(140, 171, 110, 0.3); color: var(--success); }
+  .status.error { background: rgba(217, 105, 90, 0.1); border: 1px solid rgba(217, 105, 90, 0.3); color: var(--error); }
+  .status strong { display: block; margin-bottom: 4px; color: var(--text-primary); }
+  .footnote {
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  @media (max-width: 480px) {
+    .card { padding: 28px 20px; }
+    h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <p class="eyebrow">Automated · sends immediately</p>
+    <h1>LinkedIn outreach</h1>
+    <p class="sub">Paste a LinkedIn post and the recipient's email. Gemini drafts a personalized note, attaches your resume, and sends it. There's no review step, so double-check the address.</p>
+
+    <form id="outreach-form">
+      <label for="postText">LinkedIn post</label>
+      <textarea id="postText" placeholder="Paste the full post text here..." required></textarea>
+
+      <label for="recipientEmail">Recipient email</label>
+      <input type="email" id="recipientEmail" placeholder="name@company.com" required>
+
+      <button type="submit" id="submitBtn">Draft and send</button>
+    </form>
+
+    <div class="status" id="status"></div>
+
+    <p class="footnote">Every draft passes a safety check before sending. If it comes back empty, too short, or with unfilled placeholders, nothing goes out — the reason shows here instead.</p>
+  </div>
+
+  <script>
+    const form = document.getElementById('outreach-form');
+    const btn = document.getElementById('submitBtn');
+    const statusEl = document.getElementById('status');
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str == null ? '' : str;
+      return div.innerHTML;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const postText = document.getElementById('postText').value.trim();
+      const recipientEmail = document.getElementById('recipientEmail').value.trim();
+
+      btn.disabled = true;
+      btn.textContent = 'Drafting and sending...';
+      statusEl.className = 'status';
+      statusEl.innerHTML = '';
+
+      try {
+        const res = await fetch('/api/send-outreach', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postText, recipientEmail })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          statusEl.className = 'status show success';
+          statusEl.innerHTML = `<strong>Sent</strong>Concept: ${escapeHtml(data.concept)}<br>Subject: ${escapeHtml(data.subject)}`;
+          form.reset();
+        } else {
+          statusEl.className = 'status show error';
+          statusEl.innerHTML = `<strong>Not sent</strong>${escapeHtml(data.error || 'Something went wrong.')}`;
+        }
+      } catch (err) {
+        statusEl.className = 'status show error';
+        statusEl.innerHTML = `<strong>Not sent</strong>Could not reach the server. Is it running?`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Draft and send';
+      }
+    });
+  </script>
+</body>
+</html>
