@@ -42,7 +42,7 @@ LinkedIn: ${LINKEDIN_LINK}
 // (varied specific content beats one repeated template).
 const SENDER_FACTS = `
 NAME: Jashanpreet Singh
-ROLE: Full Stack AI Engineer, final-year B.Tech IT student (SJPML Institute of Engg. & Technology, 2022–2026)
+ROLE: Full Stack AI Engineer, B.Tech IT graduate, Class of 2026 (SJPML Institute of Engg. & Technology, 2022–2026)
 CORE STACK: MERN, Next.js, TypeScript, Node/Express, MongoDB/PostgreSQL
 
 EXPERIENCE
@@ -79,7 +79,7 @@ Task:
 3. Write a professional job application email (150-220 words) FROM the sender TO the relevant person/team, following this structure:
    - Opening (1-2 sentences): state plainly that you're applying for the specific role/position named or implied in the post, and reference the one concrete detail from the post that makes this role relevant (the team, product, or requirement mentioned) — not generic "I saw your post".
    - Fit (2-3 sentences): map your background directly onto what the post is asking for. Pick the ONE experience/project that most closely matches the role's stack or domain and state it with real numbers — this should read as "here's evidence I can do this job," not a general bio.
-   - Logistics (1 sentence): mention final-year B.Tech (2022–2026) status and availability plainly — e.g. available for internship/full-time discussions, open to interview at their convenience. Don't invent a start date or salary figure that isn't given.
+   - Logistics (1 sentence): mention 2026 B.Tech graduate status and immediate availability plainly — e.g. available to start immediately, open to interview at their convenience. Don't invent a start date or salary figure that isn't given.
    - Ask (1 sentence): a direct, application-appropriate close — request to be considered for the role and/or a short interview, and note the resume/portfolio link covers full details. Not a vague "let's grab coffee" ask.
    - Sign-off: one closing line, then this exact signature block on its own lines, unchanged:
 ${SIGNATURE_BLOCK}
