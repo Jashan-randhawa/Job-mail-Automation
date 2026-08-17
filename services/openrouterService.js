@@ -17,10 +17,23 @@ function getClient() {
   return client;
 }
 
-// Single link only — two+ links in a short cold email is a mild spam signal
-// and splits the recipient's attention. Point people at the portfolio; make
-// sure it actually surfaces the resume and GitHub from there.
-const CONTACT_LINK = process.env.PORTFOLIO_LINK || 'jashan2978.vercel.app';
+// Full contact block in the sign-off. Note: multiple links in a cold email
+// is a mild spam-filter signal (more so than one bare link), so if
+// deliverability regresses, trimming this back down to just PORTFOLIO_LINK
+// is the first thing to try.
+const PORTFOLIO_LINK = process.env.PORTFOLIO_LINK || 'jashan2978.vercel.app';
+const GITHUB_LINK = process.env.GITHUB_LINK || 'github.com/Jashan-randhawa';
+const LINKEDIN_LINK = process.env.LINKEDIN_LINK || 'linkedin.com/in/jashanpreet-singh-112978211';
+const CONTACT_EMAIL = process.env.EMAIL_USER || 'jashanpreetsinghrandhawa65@gmail.com';
+const CONTACT_PHONE = process.env.CONTACT_PHONE || '+91 7988253528';
+
+const SIGNATURE_BLOCK = `
+Jashanpreet Singh
+${CONTACT_PHONE} · ${CONTACT_EMAIL}
+Portfolio: ${PORTFOLIO_LINK}
+GitHub: ${GITHUB_LINK}
+LinkedIn: ${LINKEDIN_LINK}
+`.trim();
 
 // A menu of real, verifiable facts rather than one fixed paragraph. The
 // model is instructed to pick 1–2 items that actually match the post's
@@ -46,8 +59,6 @@ OTHER CREDIBILITY SIGNALS (use sparingly, at most one, only if directly relevant
 - Ranked 1st of 150+ peers in 5th semester.
 - Led a 5-member team at Smart India Hackathon 2024 against 250+ participants.
 - Solved 150+ DSA problems in C++.
-
-LINK (the only one to include): ${CONTACT_LINK}
 `.trim();
 
 function buildPrompt(postText) {
@@ -70,11 +81,12 @@ Task:
    - Bridge (1 sentence): connect why that specific thing made you want to reach out to this person/company in particular.
    - Proof (2-3 sentences): the ONE chosen experience/project, stated with the real numbers from the facts above. Be concrete, not a skills list.
    - Ask (1 sentence): one clear, low-friction ask — a short call, a referral, or to be considered for a role. Make it easy to say yes to.
-   - Sign-off: sender's name and exactly one link: ${CONTACT_LINK}
+   - Sign-off: one closing line, then this exact signature block on its own lines, unchanged:
+${SIGNATURE_BLOCK}
    Vary sentence rhythm and opening phrasing between emails — write it the way a specific thoughtful person would phrase this particular email, not a fill-in-the-blank template. Do not reuse the same opening sentence structure every time.
 4. Tone: Formal but warm, direct. Ban these phrases entirely: "I hope this email finds you well", "I am writing to express my interest", "I came across your profile", "don't hesitate to reach out", "reaching out to explore opportunities", "passionate about", "I would love the opportunity".
 5. Never use placeholder brackets like [Company] or [Name] — use real details from the post, or write around unknowns naturally.
-6. Include only the one link above — no other URLs, no email signature block with multiple lines of contact info.
+6. Use the signature block exactly as given — don't add, remove, or reorder its lines, and don't repeat any of those links earlier in the body.
 7. Subject line: specific and professional, mentions the role/company/technology if known, max 10 words. Avoid "opportunity", "exciting", "amazing", or exclamation points.
 
 Return ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:
