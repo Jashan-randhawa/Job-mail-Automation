@@ -1,4 +1,10 @@
 import nodemailer from 'nodemailer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const RESUME_PATH = process.env.RESUME_PATH || path.join(__dirname, '..', 'resume', 'resume.pdf');
 
 let transporter;
 function getTransporter() {
@@ -14,18 +20,29 @@ function getTransporter() {
   return transporter;
 }
 
-// NOTE: we intentionally do NOT attach a PDF to a cold, unsolicited email.
-// An attachment from an address the recipient has never emailed before is
-// one of the strongest spam/phishing signals a filter looks for. Linking to
-// the resume (Drive, portfolio, etc.) instead is much friendlier to
-// deliverability, and the resume link is already woven into the email body
-// by openrouterService.js — this file just sends what it's given.
+// This is a real job application (not cold networking outreach), so an
+// attached resume is expected rather than suspicious — most recruiters
+// screen against an attachment first and may not click links, especially if
+// their mail system strips them. The portfolio/GitHub/LinkedIn links stay in
+// the signature as backup, but the PDF is the primary artifact here.
 export async function sendOutreachEmail({ to, subject, body }) {
+  const attachments = [];
+
+  if (fs.existsSync(RESUME_PATH)) {
+    attachments.push({
+      filename: 'Jashanpreet_Singh_Resume.pdf',
+      path: RESUME_PATH
+    });
+  } else {
+    console.warn(`No resume found at ${RESUME_PATH} — sending without an attachment.`);
+  }
+
   await getTransporter().sendMail({
     from: `"Jashanpreet Singh" <${process.env.EMAIL_USER}>`,
     replyTo: process.env.EMAIL_USER,
     to,
     subject,
-    text: body
+    text: body,
+    attachments
   });
 }
