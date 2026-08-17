@@ -36,9 +36,9 @@ LinkedIn: ${LINKEDIN_LINK}
 `.trim();
 
 // A menu of real, verifiable facts rather than one fixed paragraph. The
-// model is instructed to pick 1–2 items that actually match the post's
-// context instead of listing everything — that's what makes each email read
-// as considered rather than mail-merged, which also helps deliverability
+// model is instructed to pick the ONE item that matches the role in the
+// post instead of listing everything — that's what makes each application
+// read as targeted rather than mail-merged, which also helps deliverability
 // (varied specific content beats one repeated template).
 const SENDER_FACTS = `
 NAME: Jashanpreet Singh
@@ -63,7 +63,7 @@ OTHER CREDIBILITY SIGNALS (use sparingly, at most one, only if directly relevant
 
 function buildPrompt(postText) {
   return `
-You write professional job-application cold outreach emails triggered by LinkedIn posts.
+You write job application emails triggered by LinkedIn hiring posts — the sender is applying for a role, not just networking.
 
 SENDER FACTS (a menu — pick only what's relevant, do not list everything):
 ${SENDER_FACTS}
@@ -74,23 +74,23 @@ ${postText}
 """
 
 Task:
-1. Identify the core concept of the post: hiring news, product launch, technical achievement, company update, etc. Extract any company name, role, or technology mentioned.
-2. Pick the ONE experience item or ONE project from the sender facts that most closely matches what the post is about — by tech stack, domain, or problem type. Ignore the rest. If nothing matches closely, use the most broadly impressive item (the internship's 40% DAU / 80% workflow reduction results).
-3. Write a professional outreach email (150-200 words) FROM the sender TO the relevant person/team, following this structure:
-   - Hook (1 sentence): reference something specific from the post — not generic "I saw your post" or "I came across your profile".
-   - Bridge (1 sentence): connect why that specific thing made you want to reach out to this person/company in particular.
-   - Proof (2-3 sentences): the ONE chosen experience/project, stated with the real numbers from the facts above. Be concrete, not a skills list.
-   - Ask (1 sentence): one clear, low-friction ask — a short call, a referral, or to be considered for a role. Make it easy to say yes to.
+1. Identify what role is being hired for and what the company/team is working on. Extract the company name, role title, and any tech stack or requirements mentioned — this is what the application needs to speak to directly.
+2. Pick the ONE experience item or ONE project from the sender facts that most closely matches the role's stack, domain, or problem type. Ignore the rest. If nothing matches closely, use the most broadly impressive item (the internship's 40% DAU / 80% workflow reduction results).
+3. Write a professional job application email (150-220 words) FROM the sender TO the relevant person/team, following this structure:
+   - Opening (1-2 sentences): state plainly that you're applying for the specific role/position named or implied in the post, and reference the one concrete detail from the post that makes this role relevant (the team, product, or requirement mentioned) — not generic "I saw your post".
+   - Fit (2-3 sentences): map your background directly onto what the post is asking for. Pick the ONE experience/project that most closely matches the role's stack or domain and state it with real numbers — this should read as "here's evidence I can do this job," not a general bio.
+   - Logistics (1 sentence): mention final-year B.Tech (2022–2026) status and availability plainly — e.g. available for internship/full-time discussions, open to interview at their convenience. Don't invent a start date or salary figure that isn't given.
+   - Ask (1 sentence): a direct, application-appropriate close — request to be considered for the role and/or a short interview, and note the resume/portfolio link covers full details. Not a vague "let's grab coffee" ask.
    - Sign-off: one closing line, then this exact signature block on its own lines, unchanged:
 ${SIGNATURE_BLOCK}
-   Vary sentence rhythm and opening phrasing between emails — write it the way a specific thoughtful person would phrase this particular email, not a fill-in-the-blank template. Do not reuse the same opening sentence structure every time.
-4. Tone: Formal but warm, direct. Ban these phrases entirely: "I hope this email finds you well", "I am writing to express my interest", "I came across your profile", "don't hesitate to reach out", "reaching out to explore opportunities", "passionate about", "I would love the opportunity".
+   Vary sentence rhythm and opening phrasing between emails — write it the way a specific thoughtful person would phrase this particular application, not a fill-in-the-blank template. Do not reuse the same opening sentence structure every time.
+4. Tone: Formal but warm, direct — this is a job application, not a networking cold-email, so it should read as confident and role-specific rather than tentative. Ban these phrases entirely: "I hope this email finds you well", "I am writing to express my interest", "I came across your profile", "don't hesitate to reach out", "reaching out to explore opportunities", "passionate about", "I would love the opportunity".
 5. Never use placeholder brackets like [Company] or [Name] — use real details from the post, or write around unknowns naturally.
 6. Use the signature block exactly as given — don't add, remove, or reorder its lines, and don't repeat any of those links earlier in the body.
-7. Subject line: specific and professional, mentions the role/company/technology if known, max 10 words. Avoid "opportunity", "exciting", "amazing", or exclamation points.
+7. Subject line: read like a real application subject line — e.g. "Application: [Role] — Jashanpreet Singh" or "[Role] at [Company] — Jashanpreet Singh" if the role/company is known from the post, otherwise something equally specific to what the post is about. Max 12 words. Avoid "opportunity", "exciting", "amazing", or exclamation points.
 
 Return ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:
-{"concept": "one sentence describing what the post is about", "subject": "email subject line", "body": "full email body with proper line breaks using \\n"}
+{"concept": "one sentence naming the role and company being applied to, or what the post is about if unclear", "subject": "email subject line", "body": "full email body with proper line breaks using \\n"}
 `.trim();
 }
 
