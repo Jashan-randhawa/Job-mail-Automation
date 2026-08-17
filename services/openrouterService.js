@@ -17,25 +17,45 @@ function getClient() {
   return client;
 }
 
-// Single link only. Two+ links in a short cold email is a mild spam signal,
-// and it forces the recipient to choose which one matters. Point people at
-// the portfolio — it already links out to the resume and GitHub from there.
+// Single link only — two+ links in a short cold email is a mild spam signal
+// and splits the recipient's attention. Point people at the portfolio; make
+// sure it actually surfaces the resume and GitHub from there.
 const CONTACT_LINK = process.env.PORTFOLIO_LINK || 'jashan2978.vercel.app';
 
-const SENDER_PROFILE = `
-Jashan Singh — Full Stack AI Engineer, final-year B.Tech IT student.
-Stack: MERN, Next.js, TypeScript. AI integrations: Google Gemini, Azure Cognitive Services, OpenAI.
-Interned at Excellence Technologies; AI/ML training at Infosys ICT Academy.
-Has shipped several deployed full-stack AI products (an AI fitness tracker, a face-recognition attendance system, a library management platform).
-Portfolio (resume and GitHub are both linked from here): ${CONTACT_LINK}
+// A menu of real, verifiable facts rather than one fixed paragraph. The
+// model is instructed to pick 1–2 items that actually match the post's
+// context instead of listing everything — that's what makes each email read
+// as considered rather than mail-merged, which also helps deliverability
+// (varied specific content beats one repeated template).
+const SENDER_FACTS = `
+NAME: Jashanpreet Singh
+ROLE: Full Stack AI Engineer, final-year B.Tech IT student (SJPML Institute of Engg. & Technology, 2022–2026)
+CORE STACK: MERN, Next.js, TypeScript, Node/Express, MongoDB/PostgreSQL
+
+EXPERIENCE
+- Full Stack Developer Intern, Excellence Technologies (Jul–Sep 2024): built a React Native app with offline sync + real-time chat (Socket.io) that drove a 40% DAU increase; automated internal workflows cutting manual effort by 80% and resolving 15+ critical bugs; shipped Next.js landing pages for an eCommerce platform.
+- AI & ML Trainee, Infosys ICT Academy (Jun–Aug 2025): Azure AI Services training (Python ML, Azure ML Studio, NLP, Computer Vision); deployed an Azure Computer Vision image classifier (Streamlit) at 92% accuracy.
+
+PROJECTS (pick whichever is most relevant to the post's tech/domain, don't list all of them)
+- AI FiTrack: React + TypeScript + Strapi + Google Gemini AI + Azure Maps fitness tracker — Gemini-powered calorie estimation, AI chatbot, webcam food capture, PDF export.
+- Smart Attend: FastAPI + Azure Face API + InsightFace + MongoDB + Docker face-recognition attendance system — migrated ephemeral storage to MongoDB and fixed aggregation-pipeline bugs to stabilize production inference.
+- Real-Time Chat App: Node.js + Socket.io + MongoDB with a self-built TF-IDF + Logistic Regression spam classifier at 94% accuracy, auto-filtering malicious messages before delivery.
+- LibraryOS: React + TypeScript + Node/Express + MongoDB library management SaaS with role-based access and JWT auth, deployed on Render + Vercel.
+
+OTHER CREDIBILITY SIGNALS (use sparingly, at most one, only if directly relevant)
+- Ranked 1st of 150+ peers in 5th semester.
+- Led a 5-member team at Smart India Hackathon 2024 against 250+ participants.
+- Solved 150+ DSA problems in C++.
+
+LINK (the only one to include): ${CONTACT_LINK}
 `.trim();
 
 function buildPrompt(postText) {
   return `
 You write professional job-application cold outreach emails triggered by LinkedIn posts.
 
-SENDER PROFILE:
-${SENDER_PROFILE}
+SENDER FACTS (a menu — pick only what's relevant, do not list everything):
+${SENDER_FACTS}
 
 LINKEDIN POST:
 """
@@ -44,16 +64,18 @@ ${postText}
 
 Task:
 1. Identify the core concept of the post: hiring news, product launch, technical achievement, company update, etc. Extract any company name, role, or technology mentioned.
-2. Write a professional outreach email (150-200 words) FROM the sender TO the relevant person/team. It should naturally cover:
-   - A specific reference to something in the post (not generic "I saw your post").
-   - Why the sender is relevant — 2-3 sentences connecting their most relevant skills/projects to what the post is about. Name actual projects or technologies.
-   - One clear, low-friction ask — a short call, referral, or to be considered for an open role.
-   - A professional sign-off with the sender's name and exactly ONE link: ${CONTACT_LINK}
-   Vary the ordering, sentence rhythm, and opening phrasing each time rather than following one fixed skeleton — write it the way a thoughtful person would actually phrase this particular email, not a mail-merge template.
-3. Tone: Formal but warm. Avoid stock cold-email phrases entirely — no "I hope this email finds you well", "I am writing to express my interest", "I came across your profile", "don't hesitate to reach out", "reaching out to explore opportunities", or similar filler. Get to the point in language a specific human would use.
-4. Never use placeholder brackets like [Company] or [Name] — use real details from the post, or write around unknowns naturally.
-5. Include only the one link above — do not add any other URLs.
-6. Subject line: Specific and professional, not generic or salesy. Mention the role/company/technology if known. Max 10 words. Avoid words like "opportunity", "exciting", or "amazing".
+2. Pick the ONE experience item or ONE project from the sender facts that most closely matches what the post is about — by tech stack, domain, or problem type. Ignore the rest. If nothing matches closely, use the most broadly impressive item (the internship's 40% DAU / 80% workflow reduction results).
+3. Write a professional outreach email (150-200 words) FROM the sender TO the relevant person/team, following this structure:
+   - Hook (1 sentence): reference something specific from the post — not generic "I saw your post" or "I came across your profile".
+   - Bridge (1 sentence): connect why that specific thing made you want to reach out to this person/company in particular.
+   - Proof (2-3 sentences): the ONE chosen experience/project, stated with the real numbers from the facts above. Be concrete, not a skills list.
+   - Ask (1 sentence): one clear, low-friction ask — a short call, a referral, or to be considered for a role. Make it easy to say yes to.
+   - Sign-off: sender's name and exactly one link: ${CONTACT_LINK}
+   Vary sentence rhythm and opening phrasing between emails — write it the way a specific thoughtful person would phrase this particular email, not a fill-in-the-blank template. Do not reuse the same opening sentence structure every time.
+4. Tone: Formal but warm, direct. Ban these phrases entirely: "I hope this email finds you well", "I am writing to express my interest", "I came across your profile", "don't hesitate to reach out", "reaching out to explore opportunities", "passionate about", "I would love the opportunity".
+5. Never use placeholder brackets like [Company] or [Name] — use real details from the post, or write around unknowns naturally.
+6. Include only the one link above — no other URLs, no email signature block with multiple lines of contact info.
+7. Subject line: specific and professional, mentions the role/company/technology if known, max 10 words. Avoid "opportunity", "exciting", "amazing", or exclamation points.
 
 Return ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:
 {"concept": "one sentence describing what the post is about", "subject": "email subject line", "body": "full email body with proper line breaks using \\n"}
