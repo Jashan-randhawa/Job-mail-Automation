@@ -17,6 +17,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Rapid-fire, evenly-spaced sends from a personal Gmail account read as
+// script activity to Gmail's own abuse detection, which hurts deliverability
+// for every send after it. This enforces a minimum gap between sends and
+// adds a little jitter so the timing doesn't look mechanical.
+const MIN_SEND_INTERVAL_MS = Number(process.env.MIN_SEND_INTERVAL_MS || 45_000);
+let lastSendAt = 0;
+
 app.post('/api/send-outreach', async (req, res) => {
   const { postText, recipientEmail } = req.body || {};
 
@@ -25,6 +32,14 @@ app.post('/api/send-outreach', async (req, res) => {
   }
   if (!recipientEmail || !EMAIL_RE.test(recipientEmail)) {
     return res.status(400).json({ error: 'Enter a valid recipient email.' });
+  }
+
+  const sinceLastSend = Date.now() - lastSendAt;
+  if (sinceLastSend < MIN_SEND_INTERVAL_MS) {
+    const waitSec = Math.ceil((MIN_SEND_INTERVAL_MS - sinceLastSend) / 1000);
+    return res.status(429).json({
+      error: `Sending too fast looks like automation to Gmail. Wait ${waitSec}s before the next send.`
+    });
   }
 
   let draft;
@@ -47,8 +62,15 @@ app.post('/api/send-outreach', async (req, res) => {
     });
   }
 
+  // Small random delay before actually sending — spreads out send timing
+  // instead of firing the instant a draft is ready, another small nudge
+  // away from looking like a script.
+  const jitterMs = Math.floor(Math.random() * 20_000);
+  await new Promise((resolve) => setTimeout(resolve, jitterMs));
+
   try {
     await sendOutreachEmail({ to: recipientEmail, subject: draft.subject, body: draft.body });
+    lastSendAt = Date.now();
   } catch (err) {
     console.error('Send step failed:', err);
     return res.status(502).json({ error: 'Draft looked good but sending failed. Check your email credentials in .env.', draft });
