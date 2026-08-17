@@ -17,6 +17,9 @@ step in between.
    has no leftover placeholder text (like `[Company]`). If it fails, nothing
    sends — you get the reason back instead.
 4. If it passes, the email goes out via Gmail SMTP with your resume attached.
+5. Jobs are processed by a background queue worker; the UI shows every recent
+   submission with live status, queue position, ETA, timestamps, and latest
+   lifecycle event.
 
 ## Tech stack
 
@@ -96,3 +99,13 @@ Open [http://localhost:3000](http://localhost:3000).
   positioning changes — it's hardcoded there, not pulled from anywhere.
 - **Model choice is a runtime setting** — change `OPENROUTER_MODEL` in `.env`
   (or the Vercel dashboard) without touching code.
+
+## Status endpoints
+
+- `POST /api/send-outreach` queues a new job and returns `jobId`, `position`,
+  and `etaSeconds` using the queue state *before* the worker picks it up.
+- `GET /api/status/:jobId` returns detailed status for one job, including
+  lifecycle timestamps, current phase, queue position/ETA (when queued), and
+  per-job event history.
+- `GET /api/jobs` returns the current worker state and a list of recent jobs so
+  the UI can track multiple submissions at once.
