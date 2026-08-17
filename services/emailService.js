@@ -22,7 +22,7 @@ function getTransporter() {
 // by openrouterService.js — this file just sends what it's given.
 export async function sendOutreachEmail({ to, subject, body }) {
   await getTransporter().sendMail({
-    from: `"Jashan Singh" <${process.env.EMAIL_USER}>`,
+    from: `"Jashanpreet Singh" <${process.env.EMAIL_USER}>`,
     replyTo: process.env.EMAIL_USER,
     to,
     subject,
