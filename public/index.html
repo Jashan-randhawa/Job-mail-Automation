@@ -117,6 +117,36 @@
   .status.error { background: rgba(217, 105, 90, 0.1); border: 1px solid rgba(217, 105, 90, 0.3); color: var(--error); }
   .status.queued { background: rgba(192, 133, 82, 0.1); border: 1px solid rgba(192, 133, 82, 0.3); color: var(--accent-bright); }
   .status strong { display: block; margin-bottom: 4px; color: var(--text-primary); }
+  .jobs {
+    margin-top: 18px;
+    display: grid;
+    gap: 10px;
+  }
+  .job-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .job-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .job-id { color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .job-queued { color: var(--accent-bright); }
+  .job-drafting, .job-sending { color: var(--accent); }
+  .job-sent { color: var(--success); }
+  .job-failed, .job-rejected { color: var(--error); }
+  .jobs-empty {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 12px;
+  }
   .footnote {
     margin-top: 24px;
     font-size: 12px;
@@ -146,6 +176,8 @@
     </form>
 
     <div class="status" id="status"></div>
+    <div class="jobs" id="jobs"></div>
+    <p class="jobs-empty" id="jobsEmpty">No submissions yet.</p>
 
     <p class="footnote">Every draft passes a safety check before sending. If it comes back empty, too short, or with unfilled placeholders, nothing goes out and the reason shows here. Sends are queued and spaced out automatically to avoid looking like a script — you don't need to wait on this page.</p>
   </div>
@@ -154,6 +186,10 @@
     const form = document.getElementById('outreach-form');
     const btn = document.getElementById('submitBtn');
     const statusEl = document.getElementById('status');
+    const jobsEl = document.getElementById('jobs');
+    const jobsEmptyEl = document.getElementById('jobsEmpty');
+    const jobsById = new Map();
+    let pollTimer = null;
 
     function escapeHtml(str) {
       const div = document.createElement('div');
@@ -161,48 +197,76 @@
       return div.innerHTML;
     }
 
+    function formatEta(seconds) {
+      const eta = Math.max(0, Math.round(seconds || 0));
+      const mins = Math.floor(eta / 60);
+      const secs = eta % 60;
+      return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    }
+
+    function relativeTime(iso) {
+      if (!iso) return 'unknown time';
+      const ms = Date.now() - new Date(iso).getTime();
+      if (Number.isNaN(ms)) return iso;
+      const secs = Math.max(0, Math.floor(ms / 1000));
+      if (secs < 60) return `${secs}s ago`;
+      const mins = Math.floor(secs / 60);
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      return `${hrs}h ago`;
+    }
+
     function showStatus(kind, title, bodyHtml) {
       statusEl.className = `status show ${kind}`;
       statusEl.innerHTML = `<strong>${escapeHtml(title)}</strong>${bodyHtml}`;
     }
 
-    async function pollJob(jobId) {
+    function renderJobs() {
+      const jobs = Array.from(jobsById.values()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      jobsEl.innerHTML = jobs.map((job) => {
+        const latestEvent = Array.isArray(job.events) && job.events.length ? job.events[job.events.length - 1] : null;
+        const eta = typeof job.etaSeconds === 'number' ? ` · ETA ~${formatEta(job.etaSeconds)}` : '';
+        const pos = typeof job.position === 'number' ? `Position ${job.position}${eta}` : '';
+        const concept = job.concept ? `<div>Concept: ${escapeHtml(job.concept)}</div>` : '';
+        const subject = job.subject ? `<div>Subject: ${escapeHtml(job.subject)}</div>` : '';
+        const error = job.error ? `<div style="color: var(--error)">Error: ${escapeHtml(job.error)}</div>` : '';
+        const eventLine = latestEvent ? `<div>Latest: ${escapeHtml(latestEvent.phase)} — ${escapeHtml(latestEvent.message)} (${relativeTime(latestEvent.at)})</div>` : '';
+        return `
+          <article class="job-card">
+            <div class="job-top">
+              <span class="job-${escapeHtml(job.status)}">${escapeHtml(job.status.toUpperCase())}</span>
+              <span class="job-id">${escapeHtml(job.id.slice(0, 8))}</span>
+            </div>
+            <div>To: ${escapeHtml(job.recipientEmail || 'unknown')}</div>
+            <div>Queued: ${relativeTime(job.createdAt)}</div>
+            ${pos ? `<div>${escapeHtml(pos)}</div>` : ''}
+            ${concept}
+            ${subject}
+            ${error}
+            ${eventLine}
+          </article>
+        `;
+      }).join('');
+      jobsEmptyEl.style.display = jobs.length ? 'none' : 'block';
+    }
+
+    function upsertJobs(jobs) {
+      jobs.forEach((job) => jobsById.set(job.id, job));
+      renderJobs();
+    }
+
+    async function refreshJobs() {
       try {
-        const res = await fetch(`/api/status/${jobId}`);
+        const res = await fetch('/api/jobs');
+        if (!res.ok) return;
         const data = await res.json();
+        if (Array.isArray(data.jobs)) upsertJobs(data.jobs);
+      } catch (_err) {}
+    }
 
-        if (data.status === 'sent') {
-          showStatus('success', 'Sent', `Concept: ${escapeHtml(data.concept)}<br>Subject: ${escapeHtml(data.subject)}`);
-          btn.disabled = false;
-          btn.textContent = 'Queue and send';
-          return;
-        }
-
-        if (data.status === 'rejected' || data.status === 'failed') {
-          showStatus('error', 'Not sent', escapeHtml(data.error || 'Something went wrong.'));
-          btn.disabled = false;
-          btn.textContent = 'Queue and send';
-          return;
-        }
-
-        if (data.status === 'sending') {
-          showStatus('queued', 'Sending now', 'Draft passed the safety check — sending shortly.');
-        } else if (typeof data.position === 'number') {
-          const eta = Math.max(0, Math.round(data.etaSeconds || 0));
-          const mins = Math.floor(eta / 60);
-          const secs = eta % 60;
-          const etaText = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-          showStatus('queued', 'Queued', `Position ${data.position} in line · sending in ~${etaText}. You can close this tab — it'll still send.`);
-        } else {
-          showStatus('queued', 'Drafting', 'Generating the email now...');
-        }
-
-        setTimeout(() => pollJob(jobId), 3000);
-      } catch (err) {
-        showStatus('error', 'Lost connection', "Could not reach the server to check status. It may still send in the background — check your sent folder shortly.");
-        btn.disabled = false;
-        btn.textContent = 'Queue and send';
-      }
+    function ensurePolling() {
+      if (pollTimer) return;
+      pollTimer = setInterval(refreshJobs, 3000);
     }
 
     form.addEventListener('submit', async (e) => {
@@ -225,8 +289,11 @@
 
         if (res.ok) {
           form.reset();
-          btn.textContent = 'Queued — watch status below';
-          pollJob(data.jobId);
+          btn.disabled = false;
+          btn.textContent = 'Queue and send';
+          const etaText = formatEta(data.etaSeconds || 0);
+          showStatus('queued', 'Queued', `Job ${escapeHtml(data.jobId.slice(0, 8))} is in position ${escapeHtml(String(data.position || 1))} · ETA ~${escapeHtml(etaText)}.`);
+          await refreshJobs();
         } else {
           showStatus('error', 'Not queued', escapeHtml(data.error || 'Something went wrong.'));
           btn.disabled = false;
@@ -238,6 +305,9 @@
         btn.textContent = 'Queue and send';
       }
     });
+
+    ensurePolling();
+    refreshJobs();
   </script>
 </body>
 </html>
