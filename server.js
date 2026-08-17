@@ -257,7 +257,7 @@ app.get('/api/jobs', (_req, res) => {
       currentJobId,
       queuedCount: queue.length,
       lastSendAt: asIso(lastSendAt),
-      nextEligibleSendAt: asIso(nextEligibleSendAt())
+      nextEligibleSendAt: lastSendAt ? asIso(nextEligibleSendAt()) : null
     },
     jobs: jobsList
   });
