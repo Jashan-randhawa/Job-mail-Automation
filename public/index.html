@@ -115,6 +115,7 @@
   .status.show { display: block; }
   .status.success { background: rgba(140, 171, 110, 0.1); border: 1px solid rgba(140, 171, 110, 0.3); color: var(--success); }
   .status.error { background: rgba(217, 105, 90, 0.1); border: 1px solid rgba(217, 105, 90, 0.3); color: var(--error); }
+  .status.queued { background: rgba(192, 133, 82, 0.1); border: 1px solid rgba(192, 133, 82, 0.3); color: var(--accent-bright); }
   .status strong { display: block; margin-bottom: 4px; color: var(--text-primary); }
   .footnote {
     margin-top: 24px;
@@ -130,9 +131,9 @@
 </head>
 <body>
   <div class="card">
-    <p class="eyebrow">Automated · sends immediately</p>
+    <p class="eyebrow">Automated · queued and sent in the background</p>
     <h1>LinkedIn outreach</h1>
-    <p class="sub">Paste a LinkedIn post and the recipient's email. Gemini drafts a personalized note, attaches your resume, and sends it. There's no review step, so double-check the address.</p>
+    <p class="sub">Paste a LinkedIn post and the recipient's email. Gemini drafts a personalized note, attaches your resume, and sends it a little later to stay on a human-like pace. You'll see it update below — no need to keep the tab open.</p>
 
     <form id="outreach-form">
       <label for="postText">LinkedIn post</label>
@@ -141,12 +142,12 @@
       <label for="recipientEmail">Recipient email</label>
       <input type="email" id="recipientEmail" placeholder="name@company.com" required>
 
-      <button type="submit" id="submitBtn">Draft and send</button>
+      <button type="submit" id="submitBtn">Queue and send</button>
     </form>
 
     <div class="status" id="status"></div>
 
-    <p class="footnote">Every draft passes a safety check before sending. If it comes back empty, too short, or with unfilled placeholders, nothing goes out — the reason shows here instead.</p>
+    <p class="footnote">Every draft passes a safety check before sending. If it comes back empty, too short, or with unfilled placeholders, nothing goes out and the reason shows here. Sends are queued and spaced out automatically to avoid looking like a script — you don't need to wait on this page.</p>
   </div>
 
   <script>
@@ -160,13 +161,57 @@
       return div.innerHTML;
     }
 
+    function showStatus(kind, title, bodyHtml) {
+      statusEl.className = `status show ${kind}`;
+      statusEl.innerHTML = `<strong>${escapeHtml(title)}</strong>${bodyHtml}`;
+    }
+
+    async function pollJob(jobId) {
+      try {
+        const res = await fetch(`/api/status/${jobId}`);
+        const data = await res.json();
+
+        if (data.status === 'sent') {
+          showStatus('success', 'Sent', `Concept: ${escapeHtml(data.concept)}<br>Subject: ${escapeHtml(data.subject)}`);
+          btn.disabled = false;
+          btn.textContent = 'Queue and send';
+          return;
+        }
+
+        if (data.status === 'rejected' || data.status === 'failed') {
+          showStatus('error', 'Not sent', escapeHtml(data.error || 'Something went wrong.'));
+          btn.disabled = false;
+          btn.textContent = 'Queue and send';
+          return;
+        }
+
+        if (data.status === 'sending') {
+          showStatus('queued', 'Sending now', 'Draft passed the safety check — sending shortly.');
+        } else if (typeof data.position === 'number') {
+          const eta = Math.max(0, Math.round(data.etaSeconds || 0));
+          const mins = Math.floor(eta / 60);
+          const secs = eta % 60;
+          const etaText = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+          showStatus('queued', 'Queued', `Position ${data.position} in line · sending in ~${etaText}. You can close this tab — it'll still send.`);
+        } else {
+          showStatus('queued', 'Drafting', 'Generating the email now...');
+        }
+
+        setTimeout(() => pollJob(jobId), 3000);
+      } catch (err) {
+        showStatus('error', 'Lost connection', "Could not reach the server to check status. It may still send in the background — check your sent folder shortly.");
+        btn.disabled = false;
+        btn.textContent = 'Queue and send';
+      }
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const postText = document.getElementById('postText').value.trim();
       const recipientEmail = document.getElementById('recipientEmail').value.trim();
 
       btn.disabled = true;
-      btn.textContent = 'Drafting and sending...';
+      btn.textContent = 'Queuing...';
       statusEl.className = 'status';
       statusEl.innerHTML = '';
 
@@ -179,19 +224,18 @@
         const data = await res.json();
 
         if (res.ok) {
-          statusEl.className = 'status show success';
-          statusEl.innerHTML = `<strong>Sent</strong>Concept: ${escapeHtml(data.concept)}<br>Subject: ${escapeHtml(data.subject)}`;
           form.reset();
+          btn.textContent = 'Queued — watch status below';
+          pollJob(data.jobId);
         } else {
-          statusEl.className = 'status show error';
-          statusEl.innerHTML = `<strong>Not sent</strong>${escapeHtml(data.error || 'Something went wrong.')}`;
+          showStatus('error', 'Not queued', escapeHtml(data.error || 'Something went wrong.'));
+          btn.disabled = false;
+          btn.textContent = 'Queue and send';
         }
       } catch (err) {
-        statusEl.className = 'status show error';
-        statusEl.innerHTML = `<strong>Not sent</strong>Could not reach the server. Is it running?`;
-      } finally {
+        showStatus('error', 'Not queued', 'Could not reach the server. Is it running?');
         btn.disabled = false;
-        btn.textContent = 'Draft and send';
+        btn.textContent = 'Queue and send';
       }
     });
   </script>
