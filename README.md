@@ -100,6 +100,37 @@ Open [http://localhost:3000](http://localhost:3000).
 - **Model choice is a runtime setting** — change `OPENROUTER_MODEL` in `.env`
   (or the Vercel dashboard) without touching code.
 
+
+## Queue reliability model
+
+The queue is intentionally a single-process, in-memory queue. Each job is kept
+in the authoritative job map for its full lifecycle and moves through explicit
+states: `queued -> processing -> drafting -> waiting -> sending -> sent`.
+Terminal failure states are `draft_failed`, `send_failed`, `send_unknown`, and
+`rejected`; retries are idempotent and append the same job ID to the back of the
+waiting queue at most once.
+
+`queued` means a job is in the FIFO waiting queue. `processing`, `drafting`,
+`waiting`, and `sending` mean the job is the active job and has worker ownership
+metadata. The active job reports position `0`; queued jobs report their exact
+1-based index in the waiting queue. The worker uses a `workerPromise` lock so
+repeated submissions cannot start competing queue consumers. Draft generation,
+send-slot waiting, and SMTP sending are all wrapped in timeouts so one bad
+OpenRouter/SMTP/network call cannot deadlock later jobs. If SMTP times out, the
+job becomes `send_unknown` rather than being blindly resent, because delivery
+may have succeeded after the application stopped waiting.
+
+The send interval is enforced centrally by the single worker. A job drafts, then
+enters `waiting` until the global send slot is available, then transitions to
+`sending`; it is never removed from the job store while waiting. `/api/jobs`
+exposes non-secret queue diagnostics (`running`, `activeJobId`, `queuedCount`,
+and `queueIds`) plus recent jobs so the UI can reconstruct queue order.
+
+Persistence is not implemented. A process restart clears pending in-memory jobs;
+for Render/Railway/Vercel multi-instance or restart-safe operation, move the job
+map and FIFO queue to Redis or a database-backed queue before relying on this
+for critical deliveries.
+
 ## Status endpoints
 
 - `POST /api/send-outreach` queues a new job and returns `jobId`, `position`,
