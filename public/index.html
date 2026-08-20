@@ -147,6 +147,23 @@
     font-size: 12px;
     margin-top: 12px;
   }
+  .job-actions {
+    margin-top: 8px;
+  }
+  .retry-btn {
+    width: auto;
+    display: inline-block;
+    background: transparent;
+    color: var(--accent-bright);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .retry-btn:hover:not(:disabled) { background: rgba(192, 133, 82, 0.12); border-color: var(--accent); }
+  .retry-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .footnote {
     margin-top: 24px;
     font-size: 12px;
@@ -231,6 +248,10 @@
         const subject = job.subject ? `<div>Subject: ${escapeHtml(job.subject)}</div>` : '';
         const error = job.error ? `<div style="color: var(--error)">Error: ${escapeHtml(job.error)}</div>` : '';
         const eventLine = latestEvent ? `<div>Latest: ${escapeHtml(latestEvent.phase)} — ${escapeHtml(latestEvent.message)} (${relativeTime(latestEvent.at)})</div>` : '';
+        const retryCount = job.retryCount ? `<span style="color: var(--text-muted)"> · retried ${escapeHtml(String(job.retryCount))}x</span>` : '';
+        const retryBtn = job.canRetry
+          ? `<div class="job-actions"><button type="button" class="retry-btn" data-retry-id="${escapeHtml(job.id)}">Retry</button>${retryCount}</div>`
+          : '';
         return `
           <article class="job-card">
             <div class="job-top">
@@ -244,6 +265,7 @@
             ${subject}
             ${error}
             ${eventLine}
+            ${retryBtn}
           </article>
         `;
       }).join('');
@@ -254,6 +276,33 @@
       jobs.forEach((job) => jobsById.set(job.id, job));
       renderJobs();
     }
+
+    async function retryJob(jobId, btn) {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Retrying...';
+      }
+      try {
+        const res = await fetch(`/api/jobs/${jobId}/retry`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          const etaText = formatEta(data.etaSeconds || 0);
+          showStatus('queued', 'Retry queued', `Job ${escapeHtml(jobId.slice(0, 8))} is in position ${escapeHtml(String(data.position || 1))} · ETA ~${escapeHtml(etaText)}.`);
+        } else {
+          showStatus('error', 'Retry failed', escapeHtml(data.error || 'Could not retry this job.'));
+        }
+      } catch (err) {
+        showStatus('error', 'Retry failed', 'Could not reach the server.');
+      } finally {
+        await refreshJobs();
+      }
+    }
+
+    jobsEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-retry-id]');
+      if (!btn) return;
+      retryJob(btn.getAttribute('data-retry-id'), btn);
+    });
 
     async function refreshJobs() {
       try {
