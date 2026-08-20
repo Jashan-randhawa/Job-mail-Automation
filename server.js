@@ -70,6 +70,7 @@ function makeJob(postText, recipientEmail) {
     result: null,
     error: null,
     lastErrorAt: null,
+    retryCount: 0,
     events: [{ at: now, phase: 'queued', message: 'Queued for processing.' }]
   });
   queue.push(id);
@@ -108,6 +109,8 @@ function serializeJob(job, { includeDraft = false } = {}) {
     lastErrorAt: asIso(job.lastErrorAt),
     inFlight: currentJobId === job.id,
     error: job.error,
+    retryCount: job.retryCount || 0,
+    canRetry: job.status === 'failed' || job.status === 'rejected',
     events: job.events.map((event) => ({ ...event, at: asIso(event.at) }))
   };
 
@@ -237,6 +240,36 @@ app.post('/api/send-outreach', (req, res) => {
   runWorker(); // fire and forget — processes in the background
 
   res.status(202).json({ jobId, status: 'queued', position, etaSeconds });
+});
+
+app.post('/api/jobs/:jobId/retry', (req, res) => {
+  const job = jobs.get(req.params.jobId);
+  if (!job) return res.status(404).json({ error: 'Unknown job id.' });
+
+  if (job.status !== 'failed' && job.status !== 'rejected') {
+    return res.status(400).json({ error: `Only failed or rejected jobs can be retried (this job is ${job.status}).` });
+  }
+  if (queue.includes(job.id) || currentJobId === job.id) {
+    return res.status(400).json({ error: 'This job is already queued or in flight.' });
+  }
+
+  job.retryCount = (job.retryCount || 0) + 1;
+  job.status = 'queued';
+  job.startedAt = null;
+  job.draftedAt = null;
+  job.sendingAt = null;
+  job.completedAt = null;
+  job.plannedSendAt = null;
+  job.error = null;
+  job.lastErrorAt = null;
+  addJobEvent(job, 'queued', `Re-queued for retry (attempt ${job.retryCount + 1}).`);
+
+  queue.push(job.id);
+  runWorker(); // fire and forget — processes in the background
+
+  const position = getQueuePosition(job.id) || 1;
+  const etaSeconds = estimateEtaSecondsForPosition(position);
+  res.status(202).json({ jobId: job.id, status: 'queued', position, etaSeconds });
 });
 
 app.get('/api/status/:jobId', (req, res) => {
