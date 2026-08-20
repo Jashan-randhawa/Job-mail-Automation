@@ -139,9 +139,9 @@
   }
   .job-id { color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .job-queued { color: var(--accent-bright); }
-  .job-drafting, .job-sending { color: var(--accent); }
+  .job-processing, .job-drafting, .job-waiting, .job-sending { color: var(--accent); }
   .job-sent { color: var(--success); }
-  .job-failed, .job-rejected { color: var(--error); }
+  .job-draft_failed, .job-send_failed, .job-send_unknown, .job-failed, .job-rejected { color: var(--error); }
   .jobs-empty {
     color: var(--text-muted);
     font-size: 12px;
