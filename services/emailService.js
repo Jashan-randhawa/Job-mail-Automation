@@ -26,6 +26,12 @@ function getTransporter() {
 // their mail system strips them. The portfolio/GitHub/LinkedIn links stay in
 // the signature as backup, but the PDF is the primary artifact here.
 export async function sendOutreachEmail({ to, subject, body }) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
+    throw new Error(
+      'EMAIL_USER or EMAIL_APP_PASSWORD is not set. Both are required for Gmail SMTP — see .env.example.'
+    );
+  }
+
   const attachments = [];
 
   if (fs.existsSync(RESUME_PATH)) {
@@ -37,12 +43,22 @@ export async function sendOutreachEmail({ to, subject, body }) {
     console.warn(`No resume found at ${RESUME_PATH} — sending without an attachment.`);
   }
 
-  await getTransporter().sendMail({
-    from: `"Jashanpreet Singh" <${process.env.EMAIL_USER}>`,
-    replyTo: process.env.EMAIL_USER,
-    to,
-    subject,
-    text: body,
-    attachments
-  });
+  try {
+    await getTransporter().sendMail({
+      from: `"Jashanpreet Singh" <${process.env.EMAIL_USER}>`,
+      replyTo: process.env.EMAIL_USER,
+      to,
+      subject,
+      text: body,
+      attachments
+    });
+  } catch (err) {
+    if (err?.responseCode === 535 || /invalid login|username and password not accepted/i.test(err?.message || '')) {
+      throw new Error(
+        'Gmail rejected the login (535). EMAIL_APP_PASSWORD must be a 16-character App Password from ' +
+        'https://myaccount.google.com/apppasswords (requires 2-Step Verification), not the regular account password.'
+      );
+    }
+    throw err;
+  }
 }
