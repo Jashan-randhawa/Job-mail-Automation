@@ -282,6 +282,8 @@ export const __queueTest = {
   getDiagnostics() { return { workerPromise, activeJobId, queueIds: [...queuedJobIds], lastSendAt, claimedSendSlotAt, jobs: Array.from(jobs.values()) }; }
 };
 
-if (process.env.NODE_ENV !== 'test') {
+export default app;
+
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(PORT, () => console.log(`LinkedIn outreach bot running at http://localhost:${PORT}`));
 }
