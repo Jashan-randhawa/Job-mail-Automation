@@ -12,6 +12,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Fail loud, not silent — a missing/invalid key otherwise only ever shows up
+// as a cryptic 401 or auth error buried inside a job's event log, long after
+// the server started and the person has forgotten to check.
+const REQUIRED_ENV_VARS = ['OPENROUTER_API_KEY', 'EMAIL_USER', 'EMAIL_APP_PASSWORD'];
+const missingEnvVars = REQUIRED_ENV_VARS.filter((key) => !process.env[key] || !process.env[key].trim());
+if (missingEnvVars.length) {
+  console.warn(
+    `[startup] Missing environment variable(s): ${missingEnvVars.join(', ')}. ` +
+    'Every job will fail until these are set (see .env.example).'
+  );
+}
+
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -181,6 +193,11 @@ async function processJob(job) {
     job.plannedSendAt = null;
     addJobEvent(job, 'sent', 'Email sent successfully.');
   } catch (err) {
+    // Still count this as a "send attempt" for pacing purposes — an actual
+    // request hit Gmail's SMTP server whether or not it succeeded, so the
+    // next job should still wait out the interval rather than firing
+    // immediately behind a failure.
+    lastSendAt = Date.now();
     job.status = 'failed';
     job.error = 'Draft looked good but sending failed. Check your email credentials in .env.';
     job.result = draft;
