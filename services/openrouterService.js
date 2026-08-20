@@ -95,13 +95,31 @@ Return ONLY valid JSON, no markdown fences, no commentary, in exactly this shape
 }
 
 export async function extractConceptAndDraft(postText) {
-  const response = await getClient().chat.completions.create({
-    model: MODEL,
-    temperature: 0.85,
-    max_tokens: 1000,
-    response_format: { type: 'json_object' },
-    messages: [{ role: 'user', content: buildPrompt(postText) }]
-  });
+  if (!process.env.OPENROUTER_API_KEY || !process.env.OPENROUTER_API_KEY.trim()) {
+    throw new Error(
+      'OPENROUTER_API_KEY is not set. Get one at https://openrouter.ai/keys and add it to your environment.'
+    );
+  }
+
+  let response;
+  try {
+    response = await getClient().chat.completions.create({
+      model: MODEL,
+      temperature: 0.85,
+      max_tokens: 1000,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: buildPrompt(postText) }]
+    });
+  } catch (err) {
+    if (err?.status === 401) {
+      throw new Error(
+        'OpenRouter rejected OPENROUTER_API_KEY (401 Unauthorized). The key is missing, invalid, or was ' +
+        'revoked — check https://openrouter.ai/keys and make sure the same value is set wherever this is ' +
+        'running (local .env vs. hosting provider env vars can drift, and env var changes usually need a redeploy).'
+      );
+    }
+    throw err;
+  }
 
   let draft;
   try {
