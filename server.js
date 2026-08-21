@@ -51,7 +51,13 @@ export const queueConfig = {
   waitTimeoutMs: Number(process.env.WAIT_TIMEOUT_MS || 10 * 60_000),
   jobProcessingTimeoutMs: Number(process.env.JOB_PROCESSING_TIMEOUT_MS || 5 * 60_000),
   estimatedDraftSeconds: Number(process.env.ESTIMATED_DRAFT_SECONDS || 20),
-  estimatedSendSeconds: Number(process.env.ESTIMATED_SEND_SECONDS || 10)
+  estimatedSendSeconds: Number(process.env.ESTIMATED_SEND_SECONDS || 10),
+  // Independent wall-clock sweep, decoupled from the drain loop (see
+  // startStaleSweep below) — this is what actually guarantees stale-job
+  // recovery even if the loop's own per-iteration call to
+  // recoverStaleJobs() never gets a turn (e.g. the loop is itself stuck
+  // awaiting something that isn't timeout-bounded).
+  staleSweepIntervalMs: Number(process.env.STALE_SWEEP_INTERVAL_MS || 15_000)
 };
 
 const jobs = new Map();
@@ -101,6 +107,13 @@ export function assertQueueInvariants({ allowStoppedWorker = false } = {}) {
   const activeJobs = Array.from(jobs.values()).filter((job) => ACTIVE_STATUSES.has(job.status));
   if (activeJobs.length > 1) problems.push(`more than one active job: ${activeJobs.map((j) => j.id).join(',')}`);
   if (activeJobId && queuedJobIds.includes(activeJobId)) problems.push(`active job is also queued: ${activeJobId}`);
+  if (activeJobId && !jobs.has(activeJobId)) problems.push(`activeJobId ${activeJobId} references a nonexistent job`);
+  if (activeJobs.length === 1 && activeJobs[0].id !== activeJobId) {
+    problems.push(`job ${activeJobs[0].id} is in an active status but activeJobId is ${activeJobId || 'null'}`);
+  }
+  if (activeJobs.length === 0 && activeJobId) {
+    problems.push(`activeJobId ${activeJobId} is set but no job is in an active status`);
+  }
   for (const job of jobs.values()) {
     if (job.status === 'queued' && !seen.has(job.id)) problems.push(`queued job missing from queue: ${job.id}`);
     if (TERMINAL_STATUSES.has(job.status) && seen.has(job.id)) problems.push(`terminal job still queued: ${job.id}`);
@@ -147,7 +160,16 @@ function estimateEtaSeconds(job) {
     return Math.min(24 * 60 * 60, Math.max(0, Math.round(activePenalty + sendWait + jobsAhead * (queueConfig.estimatedDraftSeconds + queueConfig.estimatedSendSeconds + queueConfig.minSendIntervalMs / 1000 + queueConfig.jitterMaxMs / 2000))));
   }
   if (job.status === 'waiting' && job.plannedSendAt) return Math.max(0, Math.round((job.plannedSendAt - now()) / 1000));
-  return undefined;
+  if (job.status === 'sending') return queueConfig.estimatedSendSeconds;
+  // 'processing' / 'drafting' (and 'waiting' without a plannedSendAt yet)
+  // are all active-but-not-yet-sending — estimate the remaining draft cost.
+  // Returning a number here (never `undefined`) matters: JSON.stringify
+  // silently drops undefined keys, which previously made these active jobs
+  // report position:0 but no etaSeconds field at all, an inconsistent shape
+  // for the same "this is the active job" case the queued/waiting branches
+  // already handle.
+  if (ACTIVE_STATUSES.has(job.status)) return queueConfig.estimatedDraftSeconds;
+  return 0; // terminal job — no meaningful ETA, but always a number
 }
 
 function serializeJob(job, { includeDraft = false } = {}) {
@@ -169,9 +191,33 @@ function recoverStaleJobs() {
     if (ACTIVE_STATUSES.has(job.status) && job.lockUntil && job.lockUntil < cutoff) {
       const status = job.status === 'sending' ? 'send_unknown' : 'draft_failed';
       failActiveJob(job, status, `Recovered stale ${job.status} job after processing timeout.`);
+      // A recovered job is done — it must not keep reporting worker
+      // ownership metadata for a claim that no longer exists, or /api/status
+      // would misleadingly show a terminal job as still "claimed".
+      job.claimedBy = null;
+      job.lockUntil = null;
       if (activeJobId === job.id) activeJobId = null;
     }
   }
+}
+
+// Runs recoverStaleJobs() on a real wall-clock timer, independent of
+// drainQueue's own loop. drainQueue only calls recoverStaleJobs() between
+// iterations, which means it can never rescue a job while the loop itself is
+// blocked awaiting that very job — every operation inside processJob is
+// timeout-bounded today so that shouldn't happen, but this sweep is the
+// actual backstop if a future code path ever adds an unbounded await.
+let staleSweepTimer = null;
+function startStaleSweep() {
+  if (staleSweepTimer) return;
+  staleSweepTimer = setInterval(() => {
+    try { recoverStaleJobs(); } catch (err) { console.error('[queue] stale sweep failed:', err); }
+  }, queueConfig.staleSweepIntervalMs);
+  staleSweepTimer.unref?.();
+}
+function stopStaleSweep() {
+  if (staleSweepTimer) clearInterval(staleSweepTimer);
+  staleSweepTimer = null;
 }
 
 async function processJob(job) {
@@ -259,6 +305,14 @@ app.post('/api/jobs/:jobId/retry', (req, res) => {
   const job = jobs.get(req.params.jobId);
   if (!job) return res.status(404).json({ error: 'Unknown job id.' });
   if (!FAILURE_STATUSES.has(job.status)) return res.status(400).json({ error: `Only failed or rejected jobs can be retried (this job is ${job.status}).` });
+  // Idempotency in practice comes from the check above: this handler has no
+  // `await` before mutating job.status, so under Node's single-threaded
+  // event loop two "concurrent" retry requests are actually processed one
+  // after another — the second sees status !== a failure status (it's
+  // already 'queued'/active) and is rejected by the check above, not by
+  // this one. This branch is a defensive backstop only (e.g. if this
+  // handler is ever refactored to await something before the mutation);
+  // it should not be relied on as the primary de-dup mechanism.
   if (queuedJobIds.includes(job.id) || activeJobId === job.id) return res.status(202).json({ jobId: job.id, status: job.status, position: queuePosition(job.id), etaSeconds: estimateEtaSeconds(job), message: 'This job is already queued or active.' });
   job.retryCount = (job.retryCount || 0) + 1;
   Object.assign(job, { startedAt: null, draftedAt: null, waitingAt: null, sendingAt: null, completedAt: null, plannedSendAt: null, error: null, lastErrorAt: null, claimedBy: null, claimedAt: null, lockUntil: null, sendAttemptStartedAt: null });
@@ -277,8 +331,8 @@ app.get('/api/jobs', (_req, res) => {
 export const __queueTest = {
   jobs, queuedJobIds,
   setServices(next) { services = { ...services, ...next }; },
-  reset() { jobs.clear(); queuedJobIds.splice(0); activeJobId = null; workerPromise = null; lastSendAt = 0; claimedSendSlotAt = 0; workerSeq = 0; services = { extractConceptAndDraft: defaultExtractConceptAndDraft, sendOutreachEmail: defaultSendOutreachEmail }; },
-  makeJob, serializeJob, runWorker, recoverStaleJobs,
+  reset() { jobs.clear(); queuedJobIds.splice(0); activeJobId = null; workerPromise = null; lastSendAt = 0; claimedSendSlotAt = 0; workerSeq = 0; services = { extractConceptAndDraft: defaultExtractConceptAndDraft, sendOutreachEmail: defaultSendOutreachEmail }; stopStaleSweep(); },
+  makeJob, serializeJob, runWorker, recoverStaleJobs, startStaleSweep, stopStaleSweep,
   getDiagnostics() { return { workerPromise, activeJobId, queueIds: [...queuedJobIds], lastSendAt, claimedSendSlotAt, jobs: Array.from(jobs.values()) }; }
 };
 
@@ -286,4 +340,10 @@ export default app;
 
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(PORT, () => console.log(`LinkedIn outreach bot running at http://localhost:${PORT}`));
+}
+if (process.env.NODE_ENV !== 'test') {
+  // Safe under Vercel too: a warm serverless instance may still be reused
+  // across several invocations, and this timer is unref()'d so it never
+  // keeps a process alive on its own.
+  startStaleSweep();
 }
