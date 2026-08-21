@@ -57,7 +57,13 @@ export const queueConfig = {
   // recovery even if the loop's own per-iteration call to
   // recoverStaleJobs() never gets a turn (e.g. the loop is itself stuck
   // awaiting something that isn't timeout-bounded).
-  staleSweepIntervalMs: Number(process.env.STALE_SWEEP_INTERVAL_MS || 15_000)
+  staleSweepIntervalMs: Number(process.env.STALE_SWEEP_INTERVAL_MS || 15_000),
+  // The job store is an in-memory Map that otherwise grows forever for the
+  // life of the process — every job ever submitted, sent or failed, stays
+  // resident. Bound it so a long-running instance doesn't slowly leak
+  // memory; only ever prunes TERMINAL jobs (never queued/active ones), and
+  // only the oldest-completed ones once the store exceeds this size.
+  jobRetentionLimit: Number(process.env.JOB_RETENTION_LIMIT || 1000)
 };
 
 const jobs = new Map();
@@ -160,15 +166,23 @@ function estimateEtaSeconds(job) {
     return Math.min(24 * 60 * 60, Math.max(0, Math.round(activePenalty + sendWait + jobsAhead * (queueConfig.estimatedDraftSeconds + queueConfig.estimatedSendSeconds + queueConfig.minSendIntervalMs / 1000 + queueConfig.jitterMaxMs / 2000))));
   }
   if (job.status === 'waiting' && job.plannedSendAt) return Math.max(0, Math.round((job.plannedSendAt - now()) / 1000));
-  if (job.status === 'sending') return queueConfig.estimatedSendSeconds;
+  if (job.status === 'sending') {
+    const elapsedSeconds = job.sendAttemptStartedAt ? (now() - job.sendAttemptStartedAt) / 1000 : 0;
+    return Math.max(0, Math.round(queueConfig.estimatedSendSeconds - elapsedSeconds));
+  }
   // 'processing' / 'drafting' (and 'waiting' without a plannedSendAt yet)
-  // are all active-but-not-yet-sending — estimate the remaining draft cost.
-  // Returning a number here (never `undefined`) matters: JSON.stringify
+  // are all active-but-not-yet-sending — count down the remaining draft
+  // budget from when the worker actually claimed the job, rather than
+  // showing a flat estimate that never moves until the phase changes.
+  // Returning a number here (never `undefined`) still matters: JSON.stringify
   // silently drops undefined keys, which previously made these active jobs
   // report position:0 but no etaSeconds field at all, an inconsistent shape
   // for the same "this is the active job" case the queued/waiting branches
   // already handle.
-  if (ACTIVE_STATUSES.has(job.status)) return queueConfig.estimatedDraftSeconds;
+  if (ACTIVE_STATUSES.has(job.status)) {
+    const elapsedSeconds = job.startedAt ? (now() - job.startedAt) / 1000 : 0;
+    return Math.max(0, Math.round(queueConfig.estimatedDraftSeconds - elapsedSeconds));
+  }
   return 0; // terminal job — no meaningful ETA, but always a number
 }
 
@@ -207,11 +221,25 @@ function recoverStaleJobs() {
 // blocked awaiting that very job — every operation inside processJob is
 // timeout-bounded today so that shouldn't happen, but this sweep is the
 // actual backstop if a future code path ever adds an unbounded await.
+function pruneOldJobs() {
+  const limit = queueConfig.jobRetentionLimit;
+  if (jobs.size <= limit) return;
+  const terminal = Array.from(jobs.values())
+    .filter((job) => TERMINAL_STATUSES.has(job.status))
+    .sort((a, b) => (a.completedAt || a.updatedAt || 0) - (b.completedAt || b.updatedAt || 0));
+  let excess = jobs.size - limit;
+  for (const job of terminal) {
+    if (excess <= 0) break;
+    jobs.delete(job.id);
+    excess -= 1;
+  }
+}
+
 let staleSweepTimer = null;
 function startStaleSweep() {
   if (staleSweepTimer) return;
   staleSweepTimer = setInterval(() => {
-    try { recoverStaleJobs(); } catch (err) { console.error('[queue] stale sweep failed:', err); }
+    try { recoverStaleJobs(); pruneOldJobs(); } catch (err) { console.error('[queue] stale sweep failed:', err); }
   }, queueConfig.staleSweepIntervalMs);
   staleSweepTimer.unref?.();
 }
@@ -332,7 +360,7 @@ export const __queueTest = {
   jobs, queuedJobIds,
   setServices(next) { services = { ...services, ...next }; },
   reset() { jobs.clear(); queuedJobIds.splice(0); activeJobId = null; workerPromise = null; lastSendAt = 0; claimedSendSlotAt = 0; workerSeq = 0; services = { extractConceptAndDraft: defaultExtractConceptAndDraft, sendOutreachEmail: defaultSendOutreachEmail }; stopStaleSweep(); },
-  makeJob, serializeJob, runWorker, recoverStaleJobs, startStaleSweep, stopStaleSweep,
+  makeJob, serializeJob, runWorker, recoverStaleJobs, pruneOldJobs, startStaleSweep, stopStaleSweep,
   getDiagnostics() { return { workerPromise, activeJobId, queueIds: [...queuedJobIds], lastSendAt, claimedSendSlotAt, jobs: Array.from(jobs.values()) }; }
 };
 
