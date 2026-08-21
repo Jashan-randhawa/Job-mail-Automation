@@ -132,6 +132,20 @@ test('serializeJob reports a numeric etaSeconds for every active status, not jus
   }
 });
 
+test('active-state etaSeconds counts down with real elapsed time instead of staying flat', () => {
+  configure();
+  const id = __queueTest.makeJob('post', 'user@example.com');
+  const job = __queueTest.jobs.get(id);
+  job.status = 'drafting';
+  job.startedAt = Date.now() - (queueConfig.estimatedDraftSeconds - 3) * 1000; // 3s of budget left
+  const eta = __queueTest.serializeJob(job).etaSeconds;
+  assert.ok(eta <= 3 && eta >= 0, `expected a small remaining ETA, got ${eta}`);
+
+  job.startedAt = Date.now() - (queueConfig.estimatedDraftSeconds + 100) * 1000; // way over budget
+  const overdueEta = __queueTest.serializeJob(job).etaSeconds;
+  assert.equal(overdueEta, 0, 'ETA must never go negative once the estimate is exceeded');
+});
+
 test('assertQueueInvariants detects activeJobId drifting out of sync with the active-status job', () => {
   configure();
   const id = __queueTest.makeJob('post', 'user@example.com');
@@ -148,6 +162,48 @@ test('startStaleSweep/stopStaleSweep can be toggled repeatedly without throwing 
   assert.doesNotThrow(() => __queueTest.startStaleSweep()); // idempotent while already running
   assert.doesNotThrow(() => __queueTest.stopStaleSweep());
   assert.doesNotThrow(() => __queueTest.stopStaleSweep()); // idempotent while already stopped
+});
+
+test('pruneOldJobs bounds memory by dropping the oldest terminal jobs, never touching queued/active ones', () => {
+  configure();
+  queueConfig.jobRetentionLimit = 5;
+
+  // 3 terminal jobs, oldest to newest by completedAt.
+  const terminalIds = [];
+  for (let i = 0; i < 3; i += 1) {
+    const id = __queueTest.makeJob(`old ${i}`, `old${i}@example.com`);
+    const job = __queueTest.jobs.get(id);
+    const idx = __queueTest.queuedJobIds.indexOf(id);
+    if (idx !== -1) __queueTest.queuedJobIds.splice(idx, 1);
+    job.status = 'sent';
+    job.completedAt = Date.now() - (10 - i) * 1000; // ascending completion order
+    terminalIds.push(id);
+  }
+  // 1 job still genuinely queued — must survive pruning no matter what.
+  const queuedId = __queueTest.makeJob('still queued', 'queued@example.com');
+
+  assert.equal(__queueTest.jobs.size, 4, 'sanity: below the retention limit, nothing should prune yet');
+  __queueTest.pruneOldJobs();
+  assert.equal(__queueTest.jobs.size, 4, 'must not prune below the configured limit');
+
+  // Push over the limit with more terminal jobs.
+  for (let i = 0; i < 4; i += 1) {
+    const id = __queueTest.makeJob(`filler ${i}`, `filler${i}@example.com`);
+    const job = __queueTest.jobs.get(id);
+    const idx = __queueTest.queuedJobIds.indexOf(id);
+    if (idx !== -1) __queueTest.queuedJobIds.splice(idx, 1);
+    job.status = 'sent';
+    job.completedAt = Date.now();
+  }
+  assert.equal(__queueTest.jobs.size, 8);
+
+  __queueTest.pruneOldJobs();
+
+  assert.equal(__queueTest.jobs.size, queueConfig.jobRetentionLimit);
+  assert.equal(__queueTest.jobs.has(queuedId), true, 'the still-queued job must never be pruned');
+  assert.equal(__queueTest.jobs.has(terminalIds[0]), false, 'the oldest terminal job should be pruned first');
+
+  queueConfig.jobRetentionLimit = 1000; // restore default so this doesn't leak into later tests
 });
 
 async function fetchRetry(id) {
