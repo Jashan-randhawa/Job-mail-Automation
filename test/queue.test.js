@@ -97,6 +97,59 @@ test('H: restart simulation documents in-memory pending jobs are lost', () => {
   assert.equal(__queueTest.jobs.has(id), false);
 });
 
+test('recoverStaleJobs clears claimedBy/lockUntil so a recovered job is never misreported as still claimed', () => {
+  configure();
+  const id = __queueTest.makeJob('stuck post', 'user@example.com');
+  const job = __queueTest.jobs.get(id);
+  // Simulate a job the worker claimed but whose lease expired without ever
+  // going through the normal drainQueue finally-block cleanup — this is
+  // exactly the shape recoverStaleJobs() is meant to rescue.
+  job.status = 'drafting';
+  job.claimedBy = 'worker-ghost';
+  job.claimedAt = Date.now() - 10_000;
+  job.lockUntil = Date.now() - 1; // already expired
+  const idx = __queueTest.queuedJobIds.indexOf(id);
+  if (idx !== -1) __queueTest.queuedJobIds.splice(idx, 1); // a claimed job is no longer "waiting"
+
+  __queueTest.recoverStaleJobs();
+
+  assert.equal(job.status, 'draft_failed');
+  assert.equal(job.claimedBy, null, 'claimedBy must be cleared on recovery');
+  assert.equal(job.lockUntil, null, 'lockUntil must be cleared on recovery');
+  assert.equal(__queueTest.getDiagnostics().activeJobId, null);
+  assert.deepEqual(assertQueueInvariants({ allowStoppedWorker: true }), []);
+});
+
+test('serializeJob reports a numeric etaSeconds for every active status, not just queued/waiting', () => {
+  configure();
+  const id = __queueTest.makeJob('post', 'user@example.com');
+  const job = __queueTest.jobs.get(id);
+  for (const status of ['processing', 'drafting', 'sending']) {
+    job.status = status; // serializeJob only reads status; it doesn't validate transitions
+    const body = __queueTest.serializeJob(job);
+    assert.equal(typeof body.etaSeconds, 'number', `etaSeconds should be a number for status=${status}, got ${body.etaSeconds}`);
+    assert.ok(Number.isFinite(body.etaSeconds) && body.etaSeconds >= 0);
+  }
+});
+
+test('assertQueueInvariants detects activeJobId drifting out of sync with the active-status job', () => {
+  configure();
+  const id = __queueTest.makeJob('post', 'user@example.com');
+  const job = __queueTest.jobs.get(id);
+  job.status = 'drafting'; // an active-status job now exists...
+  // ...but the module-level activeJobId was never pointed at it.
+  const problems = assertQueueInvariants({ allowStoppedWorker: true });
+  assert.ok(problems.some((p) => p.includes('is in an active status but activeJobId is')));
+});
+
+test('startStaleSweep/stopStaleSweep can be toggled repeatedly without throwing or leaking timers', () => {
+  configure();
+  assert.doesNotThrow(() => __queueTest.startStaleSweep());
+  assert.doesNotThrow(() => __queueTest.startStaleSweep()); // idempotent while already running
+  assert.doesNotThrow(() => __queueTest.stopStaleSweep());
+  assert.doesNotThrow(() => __queueTest.stopStaleSweep()); // idempotent while already stopped
+});
+
 async function fetchRetry(id) {
   const { app } = await import('../server.js');
   const server = app.listen(0);
