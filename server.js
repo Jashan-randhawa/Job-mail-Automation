@@ -73,6 +73,23 @@ let workerPromise = null;
 let lastSendAt = 0;
 let claimedSendSlotAt = 0;
 let workerSeq = 0;
+// FIFO position is derived in O(1) from these two monotonic counters instead
+// of Array.indexOf(), which is O(n) per call. queuePosition() used to be
+// called once per job on every /api/jobs poll (via estimateEtaSeconds),
+// making that endpoint O(n^2) in the queue length. Every job is assigned a
+// queueSeq when it enters 'queued' (in makeJob and on retry); dequeueSeq
+// advances by one each time a job leaves the front of the queue. Because
+// this queue only ever removes from the head, "how many jobs are still
+// ahead of me" is just queueSeq - dequeueSeq, no scan required.
+let nextQueueSeq = 0;
+let dequeueSeq = 0;
+// Index of the first still-queued element in queuedJobIds. Dequeuing used to
+// be queuedJobIds.shift(), which is O(n) per call because every remaining
+// element has to be reindexed — draining a burst of n jobs cost O(n^2)
+// overall, the same shape of bug queuePosition() above was already fixed
+// for. queueHead lets a dequeue just skip a slot (O(1)); advanceQueueHead()
+// below periodically compacts the dead prefix away so memory stays bounded.
+let queueHead = 0;
 let services = { extractConceptAndDraft: defaultExtractConceptAndDraft, sendOutreachEmail: defaultSendOutreachEmail };
 
 function now() { return Date.now(); }
@@ -97,13 +114,31 @@ function addJobEvent(job, phase, message) {
 }
 
 function logTransition(job, from, to) {
-  console.log(`[queue] job=${job.id} ${from} -> ${to} queue=${queuedJobIds.length} active=${activeJobId || '-'} retry=${job.retryCount || 0} at=${new Date().toISOString()}`);
+  console.log(`[queue] job=${job.id} ${from} -> ${to} queue=${queueLength()} active=${activeJobId || '-'} retry=${job.retryCount || 0} at=${new Date().toISOString()}`);
+}
+
+// Number of jobs actually still waiting (excludes the dead prefix before
+// queueHead). O(1) — just pointer arithmetic, no scan.
+function queueLength() { return queuedJobIds.length - queueHead; }
+
+// Advances past the job just dequeued. O(1) amortized: normally just bumps
+// two pointers; only occasionally (once the dead prefix is large) does it
+// pay an O(k) splice to reclaim that dead space, and it amortizes that cost
+// over the k dequeues that produced it.
+function advanceQueueHead() {
+  queueHead += 1;
+  dequeueSeq += 1;
+  if (queueHead > 64 && queueHead * 2 > queuedJobIds.length) {
+    queuedJobIds.splice(0, queueHead);
+    queueHead = 0;
+  }
 }
 
 export function assertQueueInvariants({ allowStoppedWorker = false } = {}) {
   const problems = [];
   const seen = new Set();
-  for (const id of queuedJobIds) {
+  for (let i = queueHead; i < queuedJobIds.length; i += 1) {
+    const id = queuedJobIds[i];
     if (seen.has(id)) problems.push(`duplicate job id in queue: ${id}`);
     seen.add(id);
     const job = jobs.get(id);
@@ -112,7 +147,7 @@ export function assertQueueInvariants({ allowStoppedWorker = false } = {}) {
   }
   const activeJobs = Array.from(jobs.values()).filter((job) => ACTIVE_STATUSES.has(job.status));
   if (activeJobs.length > 1) problems.push(`more than one active job: ${activeJobs.map((j) => j.id).join(',')}`);
-  if (activeJobId && queuedJobIds.includes(activeJobId)) problems.push(`active job is also queued: ${activeJobId}`);
+  if (activeJobId && queuedJobIds.indexOf(activeJobId, queueHead) !== -1) problems.push(`active job is also queued: ${activeJobId}`);
   if (activeJobId && !jobs.has(activeJobId)) problems.push(`activeJobId ${activeJobId} references a nonexistent job`);
   if (activeJobs.length === 1 && activeJobs[0].id !== activeJobId) {
     problems.push(`job ${activeJobs[0].id} is in an active status but activeJobId is ${activeJobId || 'null'}`);
@@ -124,7 +159,7 @@ export function assertQueueInvariants({ allowStoppedWorker = false } = {}) {
     if (job.status === 'queued' && !seen.has(job.id)) problems.push(`queued job missing from queue: ${job.id}`);
     if (TERMINAL_STATUSES.has(job.status) && seen.has(job.id)) problems.push(`terminal job still queued: ${job.id}`);
   }
-  if (!allowStoppedWorker && queuedJobIds.length > 0 && !workerPromise) problems.push(`worker stopped while queue has ${queuedJobIds.length} job(s)`);
+  if (!allowStoppedWorker && queueLength() > 0 && !workerPromise) problems.push(`worker stopped while queue has ${queueLength()} job(s)`);
   if (problems.length) console.error('[queue:invariant]', problems.join(' | '));
   return problems;
 }
@@ -149,13 +184,22 @@ function transitionJob(job, nextStatus, metadata = {}) {
 function makeJob(postText, recipientEmail) {
   const id = crypto.randomUUID();
   const ts = now();
-  jobs.set(id, { id, status: 'queued', postText, recipientEmail, createdAt: ts, updatedAt: ts, startedAt: null, draftedAt: null, waitingAt: null, sendingAt: null, completedAt: null, plannedSendAt: null, result: null, error: null, lastErrorAt: null, retryCount: 0, claimedBy: null, claimedAt: null, lockUntil: null, sendAttemptStartedAt: null, events: [{ at: ts, phase: 'queued', message: 'Queued for processing.' }] });
+  jobs.set(id, { id, status: 'queued', postText, recipientEmail, createdAt: ts, updatedAt: ts, startedAt: null, draftedAt: null, waitingAt: null, sendingAt: null, completedAt: null, plannedSendAt: null, result: null, error: null, lastErrorAt: null, retryCount: 0, claimedBy: null, claimedAt: null, lockUntil: null, sendAttemptStartedAt: null, queueSeq: nextQueueSeq++, events: [{ at: ts, phase: 'queued', message: 'Queued for processing.' }] });
   queuedJobIds.push(id);
   assertQueueInvariants({ allowStoppedWorker: true });
   return id;
 }
 
-function queuePosition(jobId) { const idx = queuedJobIds.indexOf(jobId); return idx === -1 ? null : idx + 1; }
+// O(1): a job's place in line is just the gap between its own enqueue
+// sequence number and how many jobs have been dequeued so far. Falls back to
+// an indexOf scan only if a job is somehow missing its queueSeq (defensive;
+// shouldn't happen for anything created via makeJob/requeueJob).
+function queuePosition(jobId) {
+  const job = jobs.get(jobId);
+  if (!job || job.status !== 'queued') return null;
+  if (typeof job.queueSeq !== 'number') { const idx = queuedJobIds.indexOf(jobId, queueHead); return idx === -1 ? null : idx - queueHead + 1; }
+  return job.queueSeq - dequeueSeq + 1;
+}
 function nextEligibleSendAt() { return Math.max(lastSendAt, claimedSendSlotAt) + queueConfig.minSendIntervalMs; }
 function estimateEtaSeconds(job) {
   if (job.status === 'queued') {
@@ -289,17 +333,17 @@ async function processJob(job) {
 }
 
 async function drainQueue(workerId) {
-  console.log(`[worker] ${workerId} started with ${queuedJobIds.length} queued job(s).`);
+  console.log(`[worker] ${workerId} started with ${queueLength()} queued job(s).`);
   while (true) {
     recoverStaleJobs();
-    const jobId = queuedJobIds[0];
-    if (!jobId) break;
+    const jobId = queuedJobIds[queueHead];
+    if (jobId === undefined) break;
     const job = jobs.get(jobId);
-    if (!job) { queuedJobIds.shift(); continue; }
-    if (job.status !== 'queued') { console.error(`[queue] dropping corrupt queue entry ${jobId} status=${job.status}`); queuedJobIds.shift(); continue; }
+    if (!job) { advanceQueueHead(); continue; }
+    if (job.status !== 'queued') { console.error(`[queue] dropping corrupt queue entry ${jobId} status=${job.status}`); advanceQueueHead(); continue; }
     activeJobId = jobId;
     transitionJob(job, 'processing', { claimedBy: workerId, claimedAt: now(), lockUntil: now() + queueConfig.jobProcessingTimeoutMs, message: 'Safely claimed by worker.' });
-    queuedJobIds.shift();
+    advanceQueueHead();
     job.startedAt = job.startedAt || now();
     try { await processJob(job); }
     catch (err) { failActiveJob(job, job.status === 'sending' ? 'send_unknown' : 'draft_failed', `Unexpected worker error: ${normalizeError(err).message}`); }
@@ -313,7 +357,7 @@ export function runWorker() {
   const workerId = `worker-${++workerSeq}`;
   workerPromise = drainQueue(workerId)
     .catch((err) => console.error('[worker] fatal drain error:', err))
-    .finally(() => { workerPromise = null; assertQueueInvariants({ allowStoppedWorker: true }); if (queuedJobIds.length) runWorker(); });
+    .finally(() => { workerPromise = null; assertQueueInvariants({ allowStoppedWorker: true }); if (queueLength() > 0) runWorker(); });
   return workerPromise;
 }
 
@@ -339,11 +383,12 @@ app.post('/api/jobs/:jobId/retry', (req, res) => {
   // after another — the second sees status !== a failure status (it's
   // already 'queued'/active) and is rejected by the check above, not by
   // this one. This branch is a defensive backstop only (e.g. if this
-  // handler is ever refactored to await something before the mutation);
-  // it should not be relied on as the primary de-dup mechanism.
-  if (queuedJobIds.includes(job.id) || activeJobId === job.id) return res.status(202).json({ jobId: job.id, status: job.status, position: queuePosition(job.id), etaSeconds: estimateEtaSeconds(job), message: 'This job is already queued or active.' });
+  // handler is ever refactored to await something before the mutation).
+  // It's an O(1) status check rather than an O(n) queuedJobIds.includes()
+  // scan — a job is "already queued or active" iff its own status says so.
+  if (job.status === 'queued' || ACTIVE_STATUSES.has(job.status)) return res.status(202).json({ jobId: job.id, status: job.status, position: queuePosition(job.id), etaSeconds: estimateEtaSeconds(job), message: 'This job is already queued or active.' });
   job.retryCount = (job.retryCount || 0) + 1;
-  Object.assign(job, { startedAt: null, draftedAt: null, waitingAt: null, sendingAt: null, completedAt: null, plannedSendAt: null, error: null, lastErrorAt: null, claimedBy: null, claimedAt: null, lockUntil: null, sendAttemptStartedAt: null });
+  Object.assign(job, { startedAt: null, draftedAt: null, waitingAt: null, sendingAt: null, completedAt: null, plannedSendAt: null, error: null, lastErrorAt: null, claimedBy: null, claimedAt: null, lockUntil: null, sendAttemptStartedAt: null, queueSeq: nextQueueSeq++ });
   queuedJobIds.push(job.id);
   transitionJob(job, 'queued', { message: `Re-queued at the back for retry attempt ${job.retryCount + 1}.` });
   runWorker();
@@ -353,13 +398,18 @@ app.post('/api/jobs/:jobId/retry', (req, res) => {
 app.get('/api/status/:jobId', (req, res) => { const job = jobs.get(req.params.jobId); if (!job) return res.status(404).json({ error: 'Unknown job id.' }); res.json(serializeJob(job, { includeDraft: true })); });
 app.get('/api/jobs', (_req, res) => {
   const jobsList = Array.from(jobs.values()).sort((a, b) => b.createdAt - a.createdAt).slice(0, queueConfig.jobListLimit).map((job) => serializeJob(job));
-  res.json({ worker: { running: Boolean(workerPromise), activeJobId, currentJobId: activeJobId, queuedCount: queuedJobIds.length, queueIds: [...queuedJobIds], lastSendAt: asIso(lastSendAt), nextEligibleSendAt: lastSendAt || claimedSendSlotAt ? asIso(nextEligibleSendAt()) : null }, jobs: jobsList });
+  res.json({ worker: { running: Boolean(workerPromise), activeJobId, currentJobId: activeJobId, queuedCount: queueLength(), queueIds: queuedJobIds.slice(queueHead), lastSendAt: asIso(lastSendAt), nextEligibleSendAt: lastSendAt || claimedSendSlotAt ? asIso(nextEligibleSendAt()) : null }, jobs: jobsList });
 });
 
 export const __queueTest = {
   jobs, queuedJobIds,
+  // queuedJobIds can contain a dead prefix (already-dequeued ids not yet
+  // compacted away — see advanceQueueHead) — this returns only the ids
+  // actually still queued, i.e. what queuedJobIds itself used to mean
+  // before the O(1)-dequeue change.
+  liveQueuedIds() { return queuedJobIds.slice(queueHead); },
   setServices(next) { services = { ...services, ...next }; },
-  reset() { jobs.clear(); queuedJobIds.splice(0); activeJobId = null; workerPromise = null; lastSendAt = 0; claimedSendSlotAt = 0; workerSeq = 0; services = { extractConceptAndDraft: defaultExtractConceptAndDraft, sendOutreachEmail: defaultSendOutreachEmail }; stopStaleSweep(); },
+  reset() { jobs.clear(); queuedJobIds.splice(0); queueHead = 0; activeJobId = null; workerPromise = null; lastSendAt = 0; claimedSendSlotAt = 0; workerSeq = 0; nextQueueSeq = 0; dequeueSeq = 0; services = { extractConceptAndDraft: defaultExtractConceptAndDraft, sendOutreachEmail: defaultSendOutreachEmail }; stopStaleSweep(); },
   makeJob, serializeJob, runWorker, recoverStaleJobs, pruneOldJobs, startStaleSweep, stopStaleSweep,
   getDiagnostics() { return { workerPromise, activeJobId, queueIds: [...queuedJobIds], lastSendAt, claimedSendSlotAt, jobs: Array.from(jobs.values()) }; }
 };
