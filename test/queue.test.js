@@ -60,7 +60,10 @@ test('D: concurrent retry is idempotent and enqueues only once', async () => {
   const job = __queueTest.jobs.get(id);
   job.status = 'draft_failed';
   await Promise.all([fetchRetry(id), fetchRetry(id)]);
-  assert.equal(__queueTest.queuedJobIds.filter((queuedId) => queuedId === id).length <= 1, true);
+  // Only the live (still-queued) slice matters for "enqueued only once" -
+  // queuedJobIds itself may also hold an already-dequeued dead entry for
+  // this same id until the next compaction (see advanceQueueHead).
+  assert.equal(__queueTest.liveQueuedIds().filter((queuedId) => queuedId === id).length <= 1, true);
 });
 
 test('E: 20 near-simultaneous endpoint-equivalent submissions are unique and FIFO', async () => {
@@ -204,6 +207,21 @@ test('pruneOldJobs bounds memory by dropping the oldest terminal jobs, never tou
   assert.equal(__queueTest.jobs.has(terminalIds[0]), false, 'the oldest terminal job should be pruned first');
 
   queueConfig.jobRetentionLimit = 1000; // restore default so this doesn't leak into later tests
+});
+
+test('I: draining past the compaction threshold keeps FIFO order and invariants intact', async () => {
+  // queueHead compaction kicks in once it exceeds 64 dead slots (see
+  // advanceQueueHead) - this drains well past that so the compaction branch
+  // actually runs, not just the fast path.
+  const order = [];
+  configure({ send: async ({ subject }) => order.push(Number(subject.replace('Application ', ''))) });
+  await enqueueMany(150);
+  await Promise.all([runWorker(), runWorker(), runWorker()]);
+  assert.deepEqual(order, Array.from({ length: 150 }, (_, i) => i + 1));
+  assert.deepEqual(assertQueueInvariants({ allowStoppedWorker: true }), []);
+  // The dead prefix should have been compacted away at least once, not left
+  // to grow unbounded for the life of the process.
+  assert.ok(__queueTest.queuedJobIds.length < 150, 'dead prefix should have been compacted, not just left in place');
 });
 
 async function fetchRetry(id) {
