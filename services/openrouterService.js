@@ -2,6 +2,12 @@ import OpenAI from 'openai';
 
 const MODEL = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
 
+// Lower than the old 0.85: application emails need to stay factually
+// consistent and on-target far more than they need to sound "creative".
+// Controlled variation still comes from the prompt's explicit phrasing
+// instructions, not from a high sampling temperature.
+const TEMPERATURE = 0.55;
+
 let client;
 function getClient() {
   if (!client) {
@@ -117,48 +123,193 @@ RELIABILITY & CONSISTENCY
 - Ranked 1st of 150+ peers in 5th semester — consistent, dependable performance under evaluation.
 `.trim();
 
+// Known technology/skill tokens used to (a) normalize synonyms in the prompt
+// instructions and (b) let the deterministic validator below sanity-check
+// that a draft isn't dumping the whole stack into one email.
+const TECH_SYNONYM_MAP = [
+  ['React.js', 'React'], ['ReactJS', 'React'],
+  ['Node.js', 'Node.js'], ['Node', 'Node.js'],
+  ['Express.js', 'Express'],
+  ['Mongo', 'MongoDB'],
+  ['TS', 'TypeScript'],
+  ['GenAI', 'Generative AI'], ['Generative AI', 'Generative AI'],
+  ['Azure Cognitive Services', 'Azure AI'], ['Azure AI', 'Azure AI']
+];
+
+const FORBIDDEN_PHRASES = [
+  'i hope this email finds you well',
+  'i am writing to express my interest',
+  'i came across your profile',
+  "don't hesitate to reach out",
+  'reaching out to explore opportunities',
+  'passionate about',
+  'i would love the opportunity'
+];
+
+const VALID_ROLE_CATEGORIES = ['TECHNICAL', 'SALES_BUSINESS', 'CUSTOMER_CARE', 'HYBRID'];
+
+// All verified facts concatenated once, used only for the deterministic
+// no-fabricated-metric check below — never sent anywhere new, just reused.
+const ALL_FACTS = `${TECH_FACTS}\n${SALES_FACTS}\n${CUSTOMER_CARE_FACTS}`;
+
 function buildPrompt(postText) {
   return `
-You write job application emails triggered by LinkedIn hiring posts — the sender is applying for a role, not just networking.
+SYSTEM ROLE
+You are a job-application strategist writing on behalf of one real candidate. Given a LinkedIn hiring post, you (1) extract what the job actually needs, (2) match it against the candidate's real, pre-verified background, and (3) write ONE targeted application email — never a mail-merged template. Optimize in this order: RELEVANCE > FACTUALITY > CLARITY > PERSONALIZATION > VARIATION. Never trade truth for creativity.
 
-TECH FACTS (a menu — pick only what's relevant, do not list everything):
+CANDIDATE FACTS — three fact sets describing the SAME real person and achievements, reframed by audience. The underlying facts never change, only the language. Never invent a fact, company, title, date, number, or technology beyond what appears below.
+
+TECH FACTS (source for TECHNICAL roles; a menu — pick only what's relevant, never list everything):
 ${TECH_FACTS}
 
-SALES/BUSINESS FACTS (the SAME real background as TECH FACTS above, reframed for non-engineering roles — same person, same achievements, no new companies/titles/dates/numbers):
+SALES/BUSINESS FACTS (SAME background as TECH FACTS, reframed for non-engineering roles — no new companies/titles/dates/numbers beyond TECH FACTS):
 ${SALES_FACTS}
 
-CUSTOMER CARE FACTS (the SAME real background as TECH FACTS above, reframed specifically for support/care roles — same person, same achievements, no new companies/titles/dates/numbers):
+CUSTOMER CARE FACTS (SAME background as TECH FACTS, reframed for support/care roles — no new companies/titles/dates/numbers beyond TECH FACTS):
 ${CUSTOMER_CARE_FACTS}
 
-LINKEDIN POST:
+JOB POST:
 """
 ${postText}
 """
 
-Task:
-1. Identify what role is being hired for and what the company/team is working on. Extract the company name, role title, and any stack, domain, or requirements mentioned — this is what the application needs to speak to directly.
-2. Classify the role into exactly one category and pick facts accordingly — this decision matters more than anything else below, because a technical pitch sent to a sales post (or vice versa) reads as generic and unconvincing:
-   - TECHNICAL (software/data/ML engineering, developer roles): use TECH FACTS as the source. Pick the ONE experience item or ONE project that most closely matches the role's stack or domain.
-   - SALES_BUSINESS (sales, business development, account management, marketing, operations, or any other clearly non-engineering role NOT covered by CUSTOMER_CARE below): use SALES/BUSINESS FACTS as the source. Pick the ONE fact block (growth/adoption, operational impact, leadership/communication, results-driven, or customer-facing product sense) that most closely matches what the post is asking for. Do NOT reuse TECH FACTS' engineering-jargon phrasing here — describe the same achievement in the business/impact language SALES/BUSINESS FACTS already uses.
-   - CUSTOMER_CARE (Customer Care Executive, Customer Support Executive, Customer Service Representative, help desk, technical support, or any role centered on directly handling customer issues/tickets/queries rather than selling or growing accounts): use CUSTOMER CARE FACTS as the source. Pick the ONE fact block (issue resolution/responsiveness, clear communication with non-technical users, protecting user experience, or reliability/consistency) that most closely matches what the post is asking for. This category takes priority over SALES_BUSINESS whenever the post is about handling customer problems directly rather than growing revenue or accounts — do not use growth/revenue framing from SALES/BUSINESS FACTS here.
-   - HYBRID (sales engineer, technical account manager, solutions consultant, developer relations/advocate, technical support engineer — roles that explicitly need both technical credibility and people/communication skills): blend one item from each: lead with the business-impact or customer-care framing (whichever fits better) from SALES/BUSINESS FACTS or CUSTOMER CARE FACTS, and use one concrete technical detail from TECH FACTS as supporting proof of technical depth.
-   If the post is ambiguous or doesn't fit neatly, make the best-judgment call and proceed — don't default to the technical framing just because TECH FACTS is longer.
-3. Write a professional job application email (150-220 words) FROM the sender TO the relevant person/team, following this structure:
-   - Opening (1-2 sentences): state plainly that you're applying for the specific role/position named or implied in the post, and reference the one concrete detail from the post that makes this role relevant (the team, product, or requirement mentioned) — not generic "I saw your post".
-   - Fit (2-3 sentences): map your background directly onto what the post is asking for, using the fact category chosen in step 2. State it with real numbers — this should read as "here's evidence I can do this job," not a general bio, and it must NOT read like a copy-pasted engineering pitch if the role is sales/business.
-   - Logistics (1 sentence): mention 2026 B.Tech graduate status and immediate availability plainly — e.g. available to start immediately, open to interview at their convenience. Don't invent a start date or salary figure that isn't given.
-   - Ask (1 sentence): a direct, application-appropriate close — request to be considered for the role and/or a short interview, and note the resume/portfolio link covers full details. Not a vague "let's grab coffee" ask.
-   - Sign-off: one closing line, then this exact signature block on its own lines, unchanged:
-${SIGNATURE_BLOCK}
-   Vary sentence rhythm and opening phrasing between emails — write it the way a specific thoughtful person would phrase this particular application, not a fill-in-the-blank template. Do not reuse the same opening sentence structure every time.
-4. Tone: Formal but warm, direct — this is a job application, not a networking cold-email, so it should read as confident and role-specific rather than tentative. Ban these phrases entirely: "I hope this email finds you well", "I am writing to express my interest", "I came across your profile", "don't hesitate to reach out", "reaching out to explore opportunities", "passionate about", "I would love the opportunity".
-5. Never use placeholder brackets like [Company] or [Name], and never invent facts, companies, titles, dates, or numbers beyond what TECH FACTS and SALES/BUSINESS FACTS state above — use real details from the post, or write around unknowns naturally.
-6. Use the signature block exactly as given — don't add, remove, or reorder its lines, and don't repeat any of those links earlier in the body.
-7. Subject line: read like a real application subject line — e.g. "Application: [Role] — Jashanpreet Singh" or "[Role] at [Company] — Jashanpreet Singh" if the role/company is known from the post, otherwise something equally specific to what the post is about. Max 12 words. Avoid "opportunity", "exciting", "amazing", or exclamation points.
+MATCHING RULES — work through these internally before writing; do not show the work, only the final email:
+1. Extract from the post, without inventing anything left unstated: company, role title, seniority, location, employment type, domain, must-have skills, nice-to-have skills, core responsibilities, and any explicit application instructions. Normalize synonyms when reasoning about them (React/React.js/ReactJS → React; Node/Node.js → Node.js; Express/Express.js → Express; Mongo/MongoDB → MongoDB; TypeScript/TS → TypeScript; GenAI/Generative AI → Generative AI; Azure Cognitive Services/Azure AI → Azure AI), but keep the post's own wording in the email itself where it helps personalize the opening.
+2. Classify the role into exactly one category using this priority order — check CUSTOMER_CARE first, then TECHNICAL, then HYBRID, then SALES_BUSINESS — and decide from actual responsibilities in the post, not the title alone (if they conflict, responsibilities win):
+   - CUSTOMER_CARE (Customer Care Executive, Customer Support Executive, Customer Service Representative, help desk, support rep, technical support — any role centered on directly handling customer issues/tickets/queries rather than selling or growing accounts): use CUSTOMER CARE FACTS. This takes priority over SALES_BUSINESS whenever the post is about handling customer problems directly rather than revenue/accounts — do not use growth/revenue framing here.
+   - TECHNICAL (software/data/ML engineering, developer roles): use TECH FACTS.
+   - HYBRID (sales engineer, technical account manager, solutions consultant, developer relations/advocate, technical support engineer — roles that explicitly need both technical credibility and people/communication skills): blend sources — lead with whichever framing fits better, SALES/BUSINESS FACTS or CUSTOMER CARE FACTS, and add one concrete technical detail from TECH FACTS as supporting proof of depth.
+   - SALES_BUSINESS (sales, business development, account management, marketing, operations, or any other clearly non-engineering, non-support role): use SALES/BUSINESS FACTS. Describe the achievement in the business/impact language SALES/BUSINESS FACTS already uses — it must NOT read like a copy-pasted engineering pitch if the role is sales/business.
+   If the post is genuinely ambiguous, make the best-judgment call and proceed — don't default to TECHNICAL just because TECH FACTS is longer.
+3. Within the fact set for the chosen category, judge whether real evidence exists for each important requirement — prioritize must-have skills, then core responsibilities, then domain, then measurable achievements, then nice-to-haves — using this rough strength order: exact skill/technology match > very close transferable skill or strong responsibility match or relevant domain/project match > relevant measurable achievement > general transferable evidence > weak/indirect connection > no evidence. Do not force a match where none exists. Use semantic understanding rather than keyword matching — e.g. REST API → backend/API development, React → frontend development, Socket.io → real-time communication, MongoDB → NoSQL database, Gemini → generative AI/LLM applications, Azure Computer Vision → computer vision/Azure AI, workflow automation → process optimization, customer issue resolution → support/problem solving — but semantic similarity may only surface genuine transferable evidence, never manufacture experience.
+4. Select only the strongest evidence: normally one primary proof point plus one supporting proof point (up to three total, only for HYBRID roles). Never dump the whole stack — the email should say "this person has evidence relevant to THIS job," not "this person knows many technologies."
+5. Judge overall fit honestly and let it set the email's confidence: strong alignment → state it clearly; moderate/transferable-only fit → emphasize the transferable evidence without overstating qualification; weak fit → do not pretend to be a perfect match, lead with the strongest transferable evidence and stay honest about the rest.
+6. Address the post in priority order and don't spend words restating company marketing copy: (1) must-have/required skills, (2) core responsibilities, (3) business/domain context, (4) nice-to-have skills.
 
+WRITING RULES
+- Length: 150-210 words.
+- Opening (1-2 sentences): must reference at least one concrete element pulled from the post itself (the specific stack, product, team, or responsibility named). Never a generic opening.
+- Fit (2-3 sentences): connect one job requirement → the matched candidate evidence → a measurable proof point, written as flowing sentences, e.g. "At Excellence Technologies, I built a React Native real-time chat experience with offline sync and Socket.io that contributed to a 40% increase in daily active users." Never a list of technologies. This is evidence the candidate can do the job, not a general bio.
+- Logistics (1 sentence): mention 2026 B.Tech graduate status and immediate availability plainly (e.g. available to start immediately, open to interview at their convenience). Never invent a start date or salary figure that isn't given.
+- Ask (1 sentence): a direct, application-appropriate close — request to be considered for the role and/or a short interview, and note the resume/portfolio link covers full details. Not a vague "let's grab coffee" ask.
+- Sign-off: one closing line, then this exact signature block on its own lines, unchanged, with none of its links repeated earlier in the body:
+${SIGNATURE_BLOCK}
+- Vary opening phrasing, transition wording, evidence ordering, and sentence rhythm between emails — write it the way a specific thoughtful person would phrase this particular application, not a fill-in-the-blank template. Keep facts, tone, and the signature block fixed; only the phrasing varies. Don't make it intentionally strange or overly creative.
+- Tone: formal but warm and direct — this is a job application, not a networking cold email, so it should read as confident and role-specific rather than tentative. Ban these phrases entirely: "I hope this email finds you well", "I am writing to express my interest", "I came across your profile", "don't hesitate to reach out", "reaching out to explore opportunities", "passionate about", "I would love the opportunity".
+- Missing information: if the company name is unavailable, don't invent one — write naturally around it. If no recruiter name is given, use "Hiring Team" — never invent a person's name. If the role itself is unclear, describe the opportunity using the strongest identifiable job function.
+- Subject line: reads like a real application subject line — e.g. "Application: [Role] — Jashanpreet Singh" or "[Role] at [Company] — Jashanpreet Singh" if known from the post, otherwise something equally specific to what the post is about. Max 12 words. Avoid "opportunity", "exciting", "amazing", or exclamation points.
+
+FACTUALITY RULES — never violate these, even when a job requirement makes it tempting:
+- Never invent experience, job titles, companies, years of experience, certifications, responsibilities, salaries, locations, or technologies, and never claim proficiency the facts above don't support.
+- JOB REQUIREMENT ≠ CANDIDATE EXPERIENCE. State a requirement as candidate experience only when the fact sets above verify it. Bad: "I have extensive experience building scalable AWS systems" (when AWS isn't in the facts). Good: "My experience building Node.js and MongoDB applications gives me a strong foundation for backend development."
+- Never claim a responsibility was performed just because the job post mentions it.
+- Never use placeholder brackets like [Company], [Name], or [Role] — use real details from the post, or write around unknowns naturally.
+- Use the signature block exactly as given — don't add, remove, or reorder its lines.
+
+OUTPUT FORMAT
 Return ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:
 {"concept": "one sentence naming the role and company being applied to, or what the post is about if unclear", "roleCategory": "TECHNICAL, SALES_BUSINESS, CUSTOMER_CARE, or HYBRID", "subject": "email subject line", "body": "full email body with proper line breaks using \\n"}
 `.trim();
+}
+
+// --- Deterministic post-generation checks (section 18/19 of the spec) ---
+// Cheap, rule-based, no extra LLM call. These run after the model's JSON is
+// parsed and before the draft is handed back to the caller. They exist to
+// catch concrete, checkable problems (placeholders, banned phrases, an
+// invented number, a mangled signature) — not to second-guess valid prose,
+// so a different-but-fine sentence structure is never a reason to reject.
+
+const PLACEHOLDER_RE = /\[[^\]]{1,40}\]/;
+
+function countOccurrences(haystack, needle) {
+  if (!needle) return 0;
+  return haystack.split(needle).length - 1;
+}
+
+function findFabricatedMetric(body) {
+  const numbers = body.match(/\d+%|\d+\+/g) || [];
+  return numbers.find((n) => !ALL_FACTS.includes(n)) || null;
+}
+
+function countDistinctTechMentions(body) {
+  const lower = body.toLowerCase();
+  const canonical = new Set(TECH_SYNONYM_MAP.map(([, canon]) => canon.toLowerCase()));
+  let count = 0;
+  for (const tech of canonical) {
+    if (lower.includes(tech)) count += 1;
+  }
+  return count;
+}
+
+function validateDraft(draft) {
+  const subject = (draft.subject || '').trim();
+  const body = (draft.body || '').trim();
+
+  if (!subject) throw new Error('Draft is missing a subject line.');
+  if (!body || body.length < 50) throw new Error('Draft body is missing or too short.');
+  if (PLACEHOLDER_RE.test(subject) || PLACEHOLDER_RE.test(body)) {
+    throw new Error('Draft still contains placeholder text like [Company] or [Name].');
+  }
+  if (draft.roleCategory && !VALID_ROLE_CATEGORIES.includes(draft.roleCategory)) {
+    throw new Error(`Draft returned an invalid roleCategory: ${draft.roleCategory}`);
+  }
+
+  const lowerBody = body.toLowerCase();
+  const forbidden = FORBIDDEN_PHRASES.find((phrase) => lowerBody.includes(phrase));
+  if (forbidden) throw new Error(`Draft body uses a banned generic phrase: "${forbidden}".`);
+
+  if (!body.includes('Jashanpreet Singh')) {
+    throw new Error('Draft body is missing the candidate signature.');
+  }
+
+  for (const link of [PORTFOLIO_LINK, GITHUB_LINK, LINKEDIN_LINK]) {
+    if (countOccurrences(body, link) > 1) {
+      throw new Error(`Draft repeats the "${link}" link outside the signature block.`);
+    }
+  }
+
+  const fabricatedMetric = findFabricatedMetric(body);
+  if (fabricatedMetric) {
+    throw new Error(`Draft body cites "${fabricatedMetric}", which does not appear in any verified candidate fact.`);
+  }
+
+  const wordCount = body.split(/\s+/).filter(Boolean).length;
+  if (wordCount < 90 || wordCount > 320) {
+    throw new Error(`Draft body length (${wordCount} words) is outside a reasonable range for an application email.`);
+  }
+
+  const techMentionCount = countDistinctTechMentions(body);
+  if (techMentionCount > 8) {
+    throw new Error('Draft body lists too many technologies — evidence was not narrowed down as instructed.');
+  }
+}
+
+// Lightweight, deterministic 0-10 heuristic per dimension, purely for
+// internal observability (logged, never returned to the caller or exposed
+// over the API — the public response shape stays {concept, roleCategory,
+// subject, body}). Not a quality gate; validateDraft above is the gate.
+function scoreDraftQuality(draft, postText) {
+  const body = draft.body || '';
+  const lowerBody = body.toLowerCase();
+  const lowerPost = (postText || '').toLowerCase();
+  const postTokens = Array.from(new Set(lowerPost.match(/[a-z][a-z0-9+.#]{2,}/g) || []));
+
+  const overlap = postTokens.filter((t) => lowerBody.includes(t)).length;
+  const jobSpecificity = Math.max(0, Math.min(10, Math.round((overlap / 6) * 10)));
+
+  const hasMeasurable = /\d+%|\d+\+/.test(body);
+  const techMentions = countDistinctTechMentions(body);
+  const evidenceStrength = Math.max(0, Math.min(10, (hasMeasurable ? 6 : 2) + (techMentions >= 1 && techMentions <= 4 ? 4 : 1)));
+
+  const factualSafety = findFabricatedMetric(body) ? 2 : 10;
+
+  const wordCount = body.split(/\s+/).filter(Boolean).length;
+  const naturalness = wordCount >= 130 && wordCount <= 230 ? 9 : 6;
+
+  const clarity = body.split(/\n{2,}/).length >= 3 ? 9 : 6;
+
+  const average = (jobSpecificity + evidenceStrength + factualSafety + naturalness + clarity) / 5;
+  return { jobSpecificity, evidenceStrength, factualSafety, naturalness, clarity, average };
 }
 
 export async function extractConceptAndDraft(postText) {
@@ -172,7 +323,7 @@ export async function extractConceptAndDraft(postText) {
   try {
     response = await getClient().chat.completions.create({
       model: MODEL,
-      temperature: 0.85,
+      temperature: TEMPERATURE,
       max_tokens: 1000,
       response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: buildPrompt(postText) }]
@@ -199,7 +350,32 @@ export async function extractConceptAndDraft(postText) {
     throw new Error('OpenRouter response was missing a subject or body.');
   }
 
+  // Deterministic checks (spec section 18) — throws on concrete, checkable
+  // problems (placeholders, banned phrases, an invented number, a mangled
+  // signature, an unreasonable length). A rejection here surfaces to the
+  // caller the same way any other draft-generation failure does.
+  validateDraft(draft);
+
+  // Deterministic quality heuristic (spec section 19) — observability only,
+  // never blocks the draft and never changes the returned shape.
+  try {
+    const quality = scoreDraftQuality(draft, postText);
+    if (quality.average < 8) {
+      console.info('[openrouterService] draft quality below target', quality);
+    }
+  } catch (err) {
+    // Scoring is best-effort; never let it break a good draft.
+    console.warn('[openrouterService] quality scoring failed:', err?.message || err);
+  }
+
   return draft;
 }
 
-export const __promptTest = { buildPrompt, TECH_FACTS, SALES_FACTS, CUSTOMER_CARE_FACTS };
+export const __promptTest = {
+  buildPrompt,
+  TECH_FACTS,
+  SALES_FACTS,
+  CUSTOMER_CARE_FACTS,
+  validateDraft,
+  scoreDraftQuality
+};
