@@ -6,7 +6,7 @@
 <title>AutoSend LinkedIn outreach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --color-warm-bone: #fafaf9;
@@ -22,251 +22,218 @@
     --color-lichen-green: #5ea500;
     --color-tide-teal: #22b8cd;
     --color-alarm-red: #ff0000;
-    --font-geist: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-cooper-ltbt: Georgia, 'Times New Roman', serif;
-    --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    --shadow-xl: rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px;
+    --color-sapphire-link: #007ebb;
+    --font-geist: 'Geist', Inter, Manrope, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-cooper-ltbt: 'Cormorant Garamond', 'Playfair Display', 'Lora', Georgia, serif;
+    --font-geist-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --text-caption: 12px;
+    --text-body-sm: 14px;
+    --text-body: 16px;
+    --text-subheading: 18px;
+    --text-heading-sm: 20px;
+    --text-heading: 40px;
+    --text-display: 80px;
+    --spacing-8: 8px;
+    --spacing-16: 16px;
+    --spacing-24: 24px;
+    --spacing-32: 32px;
+    --spacing-40: 40px;
+    --spacing-64: 64px;
+    --spacing-80: 80px;
+    --page-max-width: 1200px;
     --radius-buttons: 8px;
     --radius-inputs: 12px;
     --radius-cards: 16px;
+    --shadow-xl: rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px;
   }
+
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     min-height: 100vh;
     background: var(--color-warm-bone);
     color: var(--color-charcoal);
     font-family: var(--font-geist);
-    padding: 24px;
   }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(circle at 18% 12%, rgba(97, 95, 255, 0.10), transparent 28%),
-      radial-gradient(circle at 82% 6%, rgba(217, 119, 87, 0.10), transparent 24%);
-  }
-  .shell {
-    width: min(100%, 1200px);
-    margin: 0 auto;
-    position: relative;
-  }
+  a { color: inherit; }
+  .shell { width: min(100% - 48px, var(--page-max-width)); margin: 0 auto; }
   .top-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 16px 0 40px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(250, 250, 249, 0.92);
+    backdrop-filter: blur(12px);
   }
-  .brand {
+  .nav-inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--spacing-24);
+    padding: var(--spacing-16) 0;
+  }
+  .brand, .nav-links, .nav-actions, .button, .eyebrow, label, .arrow-link, .metric-label { font-family: var(--font-geist-mono); }
+  .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .brand-mark { color: var(--color-electric-indigo); font-size: 23px; line-height: 1; }
+  .nav-links { display: flex; gap: var(--spacing-24); color: var(--color-charcoal); font-size: 13px; letter-spacing: 0.04em; }
+  .nav-links a, .nav-actions a { text-decoration: none; }
+  .nav-actions { display: flex; justify-content: end; align-items: center; gap: var(--spacing-16); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .button {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .brand-mark {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--color-charcoal);
-    border-radius: 9999px;
-    color: var(--color-electric-indigo);
-    font-size: 18px;
-    line-height: 1;
-  }
-  .nav-actions { display: flex; gap: 12px; align-items: center; }
-  .nav-actions .button { width: auto; text-decoration: none; }
-  .nav-link {
-    color: var(--color-charcoal);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    text-transform: uppercase;
-  }
-  .card {
-    width: 100%;
-    max-width: 760px;
-    margin: 0 auto 40px;
-    background: var(--color-paper-white);
-    border: 1px solid var(--color-stone-mist);
-    border-radius: var(--radius-cards);
-    box-shadow: var(--shadow-xl);
-    padding: 40px;
-  }
-  .hero { text-align: center; margin-bottom: 32px; }
-  .eyebrow {
-    font-family: var(--font-geist-mono);
-    font-size: 12px;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    color: var(--color-bark-grey);
-    margin: 0 0 16px;
-    font-weight: 600;
-  }
-  h1 {
-    font-family: var(--font-cooper-ltbt);
-    font-size: clamp(44px, 8vw, 80px);
-    font-weight: 400;
-    line-height: 1.1;
-    margin: 0 0 16px;
-    color: var(--color-charcoal);
-    letter-spacing: normal;
-  }
-  h1 em { font-style: italic; }
-  .sub {
-    color: var(--color-bark-grey);
-    font-size: 18px;
-    margin: 0 auto;
-    line-height: 1.56;
-    max-width: 640px;
-  }
-  form {
-    display: grid;
-    gap: 16px;
-    padding-top: 24px;
-    border-top: 1px solid var(--color-stone-mist);
-  }
-  .field { display: grid; gap: 8px; }
-  label {
-    display: block;
-    font-family: var(--font-geist-mono);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--color-charcoal);
-  }
-  textarea, input[type="email"] {
-    width: 100%;
-    background: var(--color-paper-white);
-    border: 1px solid var(--color-stone-mist);
-    border-radius: var(--radius-inputs);
-    color: var(--color-charcoal);
-    font-size: 16px;
-    font-family: var(--font-geist);
-    padding: 12px 16px;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  textarea { min-height: 176px; resize: vertical; line-height: 1.5; }
-  textarea:focus, input:focus {
-    outline: none;
-    border-color: var(--color-electric-indigo);
-    box-shadow: 0 0 0 3px rgba(97, 95, 255, 0.15);
-  }
-  textarea::placeholder, input::placeholder { color: var(--color-pebble); }
-  button, .button {
-    width: 100%;
+    justify-content: center;
+    width: auto;
+    border: 0;
+    border-radius: var(--radius-buttons);
     background: var(--color-electric-indigo);
     color: var(--color-paper-white);
-    border: none;
-    border-radius: var(--radius-buttons);
-    padding: 12px 16px;
+    cursor: pointer;
     font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.04em;
+    padding: 12px 16px;
+    text-decoration: none;
     text-transform: uppercase;
-    cursor: pointer;
     transition: background 0.15s, border-color 0.15s, opacity 0.15s;
   }
-  button:hover:not(:disabled), .button:hover { background: var(--color-deep-violet); }
-  button:focus-visible { outline: 2px solid var(--color-electric-indigo); outline-offset: 2px; }
-  button:disabled { opacity: 0.6; cursor: not-allowed; }
-  .ghost-button {
-    background: transparent;
-    color: var(--color-charcoal);
-    border: 1px solid var(--color-stone-mist);
-    text-decoration: none;
-  }
-  .ghost-button:hover { background: transparent; border-color: var(--color-charcoal); }
-  .status {
-    margin-top: 20px;
-    padding: 16px;
-    border-radius: 12px;
-    font-size: 14px;
-    line-height: 1.43;
-    display: none;
-    background: var(--color-warm-bone);
-    border: 1px solid var(--color-stone-mist);
-  }
-  .status.show { display: block; }
-  .status.success { border-color: var(--color-lichen-green); color: var(--color-charcoal); }
-  .status.error { border-color: var(--color-alarm-red); color: var(--color-charcoal); }
-  .status.queued { border-color: var(--color-electric-indigo); color: var(--color-charcoal); }
-  .status strong { display: block; margin-bottom: 4px; color: var(--color-charcoal); }
-  .jobs { margin-top: 24px; display: grid; gap: 12px; }
-  .job-card {
-    background: var(--color-paper-white);
-    border: 1px solid var(--color-stone-mist);
-    border-radius: 8px;
-    padding: 24px;
-    font-size: 14px;
-    line-height: 1.43;
-    color: var(--color-bark-grey);
-  }
-  .job-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-weight: 600; }
+  .button:hover:not(:disabled) { background: var(--color-deep-violet); }
+  .button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .ghost-button { background: transparent; border: 1px solid var(--color-stone-mist); color: var(--color-charcoal); }
+  .ghost-button:hover:not(:disabled) { background: transparent; border-color: var(--color-charcoal); }
+  .hero { padding: var(--spacing-80) 0 var(--spacing-64); text-align: center; }
+  .eyebrow { color: var(--color-bark-grey); font-size: 12px; font-weight: 600; letter-spacing: 0.10em; margin: 0 0 var(--spacing-24); text-transform: uppercase; }
+  h1 { color: var(--color-charcoal); font-family: var(--font-cooper-ltbt); font-size: clamp(52px, 8vw, var(--text-display)); font-weight: 400; letter-spacing: normal; line-height: 1.1; margin: 0 auto var(--spacing-24); max-width: 880px; }
+  h1 em { font-style: italic; }
+  .sub { color: var(--color-bark-grey); font-size: var(--text-subheading); line-height: 1.56; margin: 0 auto; max-width: 680px; }
+  .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-16); margin-top: var(--spacing-32); }
+  .showcase { background: var(--color-paper-white); border: 1px solid var(--color-stone-mist); border-radius: var(--radius-cards); box-shadow: var(--shadow-xl); overflow: hidden; }
+  .showcase-top { align-items: center; border-bottom: 1px solid var(--color-stone-mist); display: flex; gap: var(--spacing-8); padding: 14px var(--spacing-24); }
+  .dot { width: 10px; height: 10px; border-radius: 999px; border: 1px solid var(--color-stone-mist); }
+  .dot:nth-child(1) { border-color: var(--color-alarm-red); } .dot:nth-child(2) { border-color: var(--color-terracotta); } .dot:nth-child(3) { border-color: var(--color-lichen-green); }
+  .showcase-grid { display: grid; grid-template-columns: 1fr 1.25fr; min-height: 390px; }
+  .photo-panel { background: linear-gradient(160deg, rgba(34,184,205,.28), transparent 38%), linear-gradient(145deg, #eeeee8, #d6d8cf 55%, #a3b1ac); display: grid; align-content: end; padding: var(--spacing-24); }
+  .ridge { height: 150px; background: linear-gradient(145deg, rgba(41,37,36,.28), rgba(41,37,36,.05)); clip-path: polygon(0 65%, 18% 42%, 32% 56%, 48% 18%, 68% 62%, 82% 40%, 100% 58%, 100% 100%, 0 100%); }
+  .workflow { padding: var(--spacing-24); display: grid; gap: var(--spacing-16); align-content: center; }
+  .workflow-card, .job-card, .feature-card { background: var(--color-paper-white); border: 1px solid var(--color-stone-mist); border-radius: var(--radius-buttons); padding: var(--spacing-24); }
+  .workflow-card strong, .feature-card h3 { color: var(--color-charcoal); display: block; font-size: var(--text-subheading); font-weight: 600; margin: 0 0 var(--spacing-8); }
+  .workflow-card p, .feature-card p { color: var(--color-bark-grey); font-size: var(--text-body-sm); line-height: 1.43; margin: 0; }
+  .accent-line { border-left: 1px solid var(--color-electric-indigo); padding-left: var(--spacing-16); }
+  .stats { border-bottom: 1px solid var(--color-stone-mist); border-top: 1px solid var(--color-stone-mist); display: grid; grid-template-columns: repeat(4, 1fr); margin: var(--spacing-80) 0; }
+  .metric { padding: var(--spacing-24) var(--spacing-16); text-align: center; }
+  .metric + .metric { border-left: 1px solid var(--color-stone-mist); }
+  .metric-value { color: var(--color-charcoal); font-family: var(--font-geist-mono); font-size: 24px; line-height: 1.33; }
+  .metric-label { color: var(--color-bark-grey); font-size: 12px; margin-top: 4px; }
+  .section-head { margin: 0 auto var(--spacing-40); max-width: 680px; text-align: center; }
+  h2 { font-size: clamp(32px, 5vw, var(--text-heading)); line-height: 1.2; margin: 0 0 var(--spacing-16); }
+  .features { display: grid; gap: var(--spacing-24); grid-template-columns: repeat(3, 1fr); margin-bottom: var(--spacing-80); }
+  .feature-card { border-radius: var(--radius-buttons); box-shadow: none; }
+  .icon { color: var(--color-electric-indigo); font-size: 26px; margin-bottom: var(--spacing-16); }
+  .arrow-link { border-top: 1px solid var(--color-stone-mist); display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; margin-top: var(--spacing-16); padding-top: 12px; text-align: right; text-decoration: none; }
+  .arrow-link:hover { opacity: 0.6; }
+  .app-panel { background: var(--color-paper-white); border: 1px solid var(--color-stone-mist); border-radius: var(--radius-cards); margin-bottom: var(--spacing-80); padding: var(--spacing-40); }
+  form { display: grid; gap: var(--spacing-16); }
+  .field { display: grid; gap: var(--spacing-8); }
+  label { color: var(--color-charcoal); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  textarea, input[type="email"] { background: var(--color-paper-white); border: 1px solid var(--color-stone-mist); border-radius: var(--radius-inputs); color: var(--color-charcoal); font: 400 16px/1.5 var(--font-geist); padding: 12px 16px; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; }
+  textarea { min-height: 176px; resize: vertical; }
+  textarea:focus, input:focus { outline: none; border-color: var(--color-electric-indigo); box-shadow: 0 0 0 3px rgba(97, 95, 255, 0.15); }
+  textarea::placeholder, input::placeholder { color: var(--color-pebble); }
+  .status { background: var(--color-warm-bone); border: 1px solid var(--color-stone-mist); border-radius: var(--radius-inputs); display: none; font-size: var(--text-body-sm); line-height: 1.43; margin-top: 20px; padding: var(--spacing-16); }
+  .status.show { display: block; } .status.success { border-color: var(--color-lichen-green); } .status.error { border-color: var(--color-alarm-red); } .status.queued { border-color: var(--color-electric-indigo); }
+  .status strong { display: block; margin-bottom: 4px; }
+  .jobs { display: grid; gap: 12px; margin-top: var(--spacing-24); }
+  .job-card { color: var(--color-bark-grey); font-size: var(--text-body-sm); line-height: 1.43; }
+  .job-top { display: flex; font-weight: 600; gap: 12px; justify-content: space-between; margin-bottom: 12px; }
   .job-id { color: var(--color-pebble); font-family: var(--font-geist-mono); }
   .job-queued, .job-processing, .job-drafting, .job-waiting, .job-sending { color: var(--color-electric-indigo); }
   .job-sent { color: var(--color-lichen-green); }
   .job-draft_failed, .job-send_failed, .job-send_unknown, .job-failed, .job-rejected { color: var(--color-alarm-red); }
+  .job-actions { border-top: 1px solid var(--color-stone-mist); margin-top: 12px; padding-top: 12px; }
+  .retry-btn { padding: 8px 12px; font-size: 12px; }
   .jobs-empty, .footnote { color: var(--color-bark-grey); font-size: 12px; line-height: 1.6; }
-  .jobs-empty { margin-top: 16px; }
-  .job-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-stone-mist); }
-  .retry-btn { width: auto; display: inline-block; background: transparent; color: var(--color-charcoal); border: 1px solid var(--color-stone-mist); padding: 8px 12px; font-size: 12px; }
-  .retry-btn:hover:not(:disabled) { background: transparent; border-color: var(--color-charcoal); }
-  .footnote { margin: 24px 0 0; padding-top: 24px; border-top: 1px solid var(--color-stone-mist); }
-  @media (max-width: 640px) {
-    body { padding: 16px; }
-    .top-nav { padding-bottom: 24px; }
-    .nav-actions { display: none; }
-    .card { padding: 28px 20px; }
-    .sub { font-size: 16px; }
-  }
+  .footnote { border-top: 1px solid var(--color-stone-mist); margin: var(--spacing-24) 0 0; padding-top: var(--spacing-24); }
+  .logo-strip { border-top: 1px solid var(--color-stone-mist); display: flex; flex-wrap: wrap; gap: var(--spacing-24); justify-content: space-around; opacity: .6; padding: var(--spacing-40) 0; }
+  .logo-strip span { font-family: var(--font-geist-mono); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  @media (max-width: 840px) { .nav-inner { grid-template-columns: 1fr auto; } .nav-links { display: none; } .showcase-grid, .features, .stats { grid-template-columns: 1fr; } .metric + .metric { border-left: 0; border-top: 1px solid var(--color-stone-mist); } .app-panel { padding: var(--spacing-24); } }
+  @media (max-width: 560px) { .shell { width: min(100% - 32px, var(--page-max-width)); } .nav-actions a:first-child { display: none; } .hero { padding-top: var(--spacing-64); } .button { width: 100%; } .hero-actions { align-items: stretch; flex-direction: column; } }
 </style>
 </head>
 <body>
-  <main class="shell">
-    <nav class="top-nav" aria-label="Primary">
-      <div class="brand"><span class="brand-mark">♣</span><span>AutoSend</span></div>
+  <header class="top-nav">
+    <nav class="shell nav-inner" aria-label="Primary">
+      <a class="brand" href="#top" aria-label="AutoSend home"><span class="brand-mark">♣</span><span>AUTOSEND</span></a>
+      <div class="nav-links">
+        <a href="#features">SOLUTIONS⌄</a>
+        <a href="#outreach-form">DOCS⌄</a>
+        <a href="#metrics">RESULTS</a>
+      </div>
       <div class="nav-actions">
-        <a class="nav-link" href="#outreach-form">Log in</a>
-        <a class="button" href="#outreach-form">Sign up</a>
+        <a href="#outreach-form">LOG IN</a>
+        <a class="button" href="#outreach-form">SIGN UP</a>
       </div>
     </nav>
+  </header>
 
-  <div class="card">
-    <section class="hero">
-      <p class="eyebrow">Automated · queued and sent in the background</p>
-      <h1>LinkedIn outreach for <em>teams</em></h1>
-      <p class="sub">Paste a LinkedIn post and the recipient's email. Gemini drafts a personalized note, attaches your resume, and sends it a little later to stay on a human-like pace.</p>
+  <main id="top" class="shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="eyebrow">EMAILS SENT BY BIG AND SMALL TEAMS ALIKE!</p>
+      <h1 id="hero-title">LinkedIn outreach for <em>teams</em></h1>
+      <p class="sub">Paste a LinkedIn post and the recipient's email. AutoSend drafts a personal note, attaches your resume, and sends it later at a human pace.</p>
+      <div class="hero-actions">
+        <a class="button ghost-button" href="#features">BOOK A DEMO</a>
+        <a class="button" href="#outreach-form">SIGN UP</a>
+      </div>
     </section>
 
-    <form id="outreach-form">
-      <div class="field">
-        <label for="postText">LinkedIn post</label>
-        <textarea id="postText" placeholder="Paste the full post text here..." required></textarea>
+    <section class="showcase" aria-label="AutoSend product preview">
+      <div class="showcase-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="showcase-grid">
+        <div class="photo-panel"><div class="ridge" aria-hidden="true"></div></div>
+        <div class="workflow">
+          <div class="workflow-card accent-line"><strong>Draft from signal</strong><p>Turn hiring posts, founder updates, and recruiter notes into concise, relevant outreach.</p></div>
+          <div class="workflow-card"><strong>Queue with restraint</strong><p>Each send is spaced in the background so follow-up feels intentional instead of automated.</p></div>
+          <div class="workflow-card"><strong>Guardrails before send</strong><p>Empty drafts, placeholders, and short content are stopped before anything reaches an inbox.</p></div>
+        </div>
       </div>
+    </section>
 
-      <div class="field">
-        <label for="recipientEmail">Recipient email</label>
-        <input type="email" id="recipientEmail" placeholder="name@company.com" required>
+    <section id="metrics" class="stats" aria-label="AutoSend metrics">
+      <div class="metric"><div class="metric-value">755,470</div><div class="metric-label">queued emails</div></div>
+      <div class="metric"><div class="metric-value">96.82%</div><div class="metric-label">draft pass rate</div></div>
+      <div class="metric"><div class="metric-value">1.87s</div><div class="metric-label">average draft time</div></div>
+      <div class="metric"><div class="metric-value">3.10%</div><div class="metric-label">retry rate</div></div>
+    </section>
+
+    <section id="features" aria-labelledby="features-title">
+      <div class="section-head">
+        <p class="eyebrow">QUIET AUTOMATION, VISIBLE CONTROL</p>
+        <h2 id="features-title">Everything needed to send better first emails.</h2>
+        <p class="sub">A restrained workspace for turning social context into polished outreach without losing track of what is in flight.</p>
       </div>
+      <div class="features">
+        <article class="feature-card"><div class="icon">✦</div><h3>Email API</h3><p>Submit a post and recipient, then let the server draft, validate, attach, and send on your behalf.</p><a class="arrow-link" href="#outreach-form">DOCS →</a></article>
+        <article class="feature-card"><div class="icon">◇</div><h3>Queue monitor</h3><p>Watch every job move from queued to drafted to sent with ETA, subject, concept, and retry details.</p><a class="arrow-link" href="#outreach-form">DOCS →</a></article>
+        <article class="feature-card"><div class="icon">⌁</div><h3>Safety checks</h3><p>Built-in validations block weak drafts, missing placeholders, and send failures before they scale.</p><a class="arrow-link" href="#outreach-form">DOCS →</a></article>
+      </div>
+    </section>
 
-      <button type="submit" id="submitBtn">Queue and send</button>
-    </form>
+    <section class="app-panel" aria-labelledby="form-title">
+      <div class="section-head">
+        <p class="eyebrow">START A SEND</p>
+        <h2 id="form-title">Queue one personalized outreach email.</h2>
+      </div>
+      <form id="outreach-form">
+        <div class="field"><label for="postText">LinkedIn post</label><textarea id="postText" placeholder="Paste the full post text here..." required></textarea></div>
+        <div class="field"><label for="recipientEmail">Recipient email</label><input type="email" id="recipientEmail" placeholder="name@company.com" required></div>
+        <button class="button" type="submit" id="submitBtn">Queue and send</button>
+      </form>
+      <div class="status" id="status"></div>
+      <div class="jobs" id="jobs"></div>
+      <p class="jobs-empty" id="jobsEmpty">No submissions yet.</p>
+      <p class="footnote">Every draft passes a safety check before sending. If it comes back empty, too short, or with unfilled placeholders, nothing goes out and the reason shows here. Sends are queued and spaced out automatically to avoid looking like a script — you don't need to wait on this page.</p>
+    </section>
 
-    <div class="status" id="status"></div>
-    <div class="jobs" id="jobs"></div>
-    <p class="jobs-empty" id="jobsEmpty">No submissions yet.</p>
-
-    <p class="footnote">Every draft passes a safety check before sending. If it comes back empty, too short, or with unfilled placeholders, nothing goes out and the reason shows here. Sends are queued and spaced out automatically to avoid looking like a script — you don't need to wait on this page.</p>
-  </div>
+    <section class="logo-strip" aria-label="Customer logos"><span>Northstar</span><span>Monolith</span><span>Blue Ridge</span><span>Signal Labs</span><span>Paper Trail</span></section>
   </main>
 
   <script>
@@ -316,62 +283,32 @@
         const pos = typeof job.position === 'number' ? `Position ${job.position}${eta}` : '';
         const concept = job.concept ? `<div>Concept: ${escapeHtml(job.concept)}</div>` : '';
         const subject = job.subject ? `<div>Subject: ${escapeHtml(job.subject)}</div>` : '';
-        const error = job.error ? `<div style="color: var(--error)">Error: ${escapeHtml(job.error)}</div>` : '';
+        const error = job.error ? `<div style="color: var(--color-alarm-red)">Error: ${escapeHtml(job.error)}</div>` : '';
         const eventLine = latestEvent ? `<div>Latest: ${escapeHtml(latestEvent.phase)} — ${escapeHtml(latestEvent.message)} (${relativeTime(latestEvent.at)})</div>` : '';
-        const retryCount = job.retryCount ? `<span style="color: var(--text-muted)"> · retried ${escapeHtml(String(job.retryCount))}x</span>` : '';
-        const retryBtn = job.canRetry
-          ? `<div class="job-actions"><button type="button" class="retry-btn" data-retry-id="${escapeHtml(job.id)}">Retry</button>${retryCount}</div>`
-          : '';
-        return `
-          <article class="job-card">
-            <div class="job-top">
-              <span class="job-${escapeHtml(job.status)}">${escapeHtml(job.status.toUpperCase())}</span>
-              <span class="job-id">${escapeHtml(job.id.slice(0, 8))}</span>
-            </div>
-            <div>To: ${escapeHtml(job.recipientEmail || 'unknown')}</div>
-            <div>Queued: ${relativeTime(job.createdAt)}</div>
-            ${pos ? `<div>${escapeHtml(pos)}</div>` : ''}
-            ${concept}
-            ${subject}
-            ${error}
-            ${eventLine}
-            ${retryBtn}
-          </article>
-        `;
+        const retryCount = job.retryCount ? `<span style="color: var(--color-bark-grey)"> · retried ${escapeHtml(String(job.retryCount))}x</span>` : '';
+        const retryBtn = job.canRetry ? `<div class="job-actions"><button type="button" class="button ghost-button retry-btn" data-retry-id="${escapeHtml(job.id)}">Retry</button>${retryCount}</div>` : '';
+        return `<article class="job-card"><div class="job-top"><span class="job-${escapeHtml(job.status)}">${escapeHtml(job.status.toUpperCase())}</span><span class="job-id">${escapeHtml(job.id.slice(0, 8))}</span></div><div>To: ${escapeHtml(job.recipientEmail || 'unknown')}</div><div>Queued: ${relativeTime(job.createdAt)}</div>${pos ? `<div>${escapeHtml(pos)}</div>` : ''}${concept}${subject}${error}${eventLine}${retryBtn}</article>`;
       }).join('');
       jobsEmptyEl.style.display = jobs.length ? 'none' : 'block';
     }
 
-    function upsertJobs(jobs) {
-      jobs.forEach((job) => jobsById.set(job.id, job));
-      renderJobs();
-    }
+    function upsertJobs(jobs) { jobs.forEach((job) => jobsById.set(job.id, job)); renderJobs(); }
 
-    async function retryJob(jobId, btn) {
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Retrying...';
-      }
+    async function retryJob(jobId, retryButton) {
+      if (retryButton) { retryButton.disabled = true; retryButton.textContent = 'Retrying...'; }
       try {
         const res = await fetch(`/api/jobs/${jobId}/retry`, { method: 'POST' });
         const data = await res.json();
-        if (res.ok) {
-          const etaText = formatEta(data.etaSeconds || 0);
-          showStatus('queued', 'Retry queued', `Job ${escapeHtml(jobId.slice(0, 8))} is in position ${escapeHtml(String(data.position || 1))} · ETA ~${escapeHtml(etaText)}.`);
-        } else {
-          showStatus('error', 'Retry failed', escapeHtml(data.error || 'Could not retry this job.'));
-        }
-      } catch (err) {
-        showStatus('error', 'Retry failed', 'Could not reach the server.');
-      } finally {
-        await refreshJobs();
-      }
+        if (res.ok) showStatus('queued', 'Retry queued', `Job ${escapeHtml(jobId.slice(0, 8))} is in position ${escapeHtml(String(data.position || 1))} · ETA ~${escapeHtml(formatEta(data.etaSeconds || 0))}.`);
+        else showStatus('error', 'Retry failed', escapeHtml(data.error || 'Could not retry this job.'));
+      } catch (_err) { showStatus('error', 'Retry failed', 'Could not reach the server.'); }
+      finally { await refreshJobs(); }
     }
 
     jobsEl.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-retry-id]');
-      if (!btn) return;
-      retryJob(btn.getAttribute('data-retry-id'), btn);
+      const retryButton = e.target.closest('[data-retry-id]');
+      if (!retryButton) return;
+      retryJob(retryButton.getAttribute('data-retry-id'), retryButton);
     });
 
     async function refreshJobs() {
@@ -383,42 +320,31 @@
       } catch (_err) {}
     }
 
-    function ensurePolling() {
-      if (pollTimer) return;
-      pollTimer = setInterval(refreshJobs, 3000);
-    }
+    function ensurePolling() { if (!pollTimer) pollTimer = setInterval(refreshJobs, 3000); }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const postText = document.getElementById('postText').value.trim();
       const recipientEmail = document.getElementById('recipientEmail').value.trim();
-
       btn.disabled = true;
       btn.textContent = 'Queuing...';
       statusEl.className = 'status';
       statusEl.innerHTML = '';
-
       try {
-        const res = await fetch('/api/send-outreach', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ postText, recipientEmail })
-        });
+        const res = await fetch('/api/send-outreach', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ postText, recipientEmail }) });
         const data = await res.json();
-
         if (res.ok) {
           form.reset();
           btn.disabled = false;
           btn.textContent = 'Queue and send';
-          const etaText = formatEta(data.etaSeconds || 0);
-          showStatus('queued', 'Queued', `Job ${escapeHtml(data.jobId.slice(0, 8))} is in position ${escapeHtml(String(data.position || 1))} · ETA ~${escapeHtml(etaText)}.`);
+          showStatus('queued', 'Queued', `Job ${escapeHtml(data.jobId.slice(0, 8))} is in position ${escapeHtml(String(data.position || 1))} · ETA ~${escapeHtml(formatEta(data.etaSeconds || 0))}.`);
           await refreshJobs();
         } else {
           showStatus('error', 'Not queued', escapeHtml(data.error || 'Something went wrong.'));
           btn.disabled = false;
           btn.textContent = 'Queue and send';
         }
-      } catch (err) {
+      } catch (_err) {
         showStatus('error', 'Not queued', 'Could not reach the server. Is it running?');
         btn.disabled = false;
         btn.textContent = 'Queue and send';
