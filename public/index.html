@@ -3,191 +3,260 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LinkedIn outreach</title>
+<title>AutoSend LinkedIn outreach</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #14120F;
-    --surface: #1C1812;
-    --surface-2: #241F17;
-    --border: #2E2820;
-    --accent: #C08552;
-    --accent-bright: #D69B6B;
-    --text-primary: #EDE6D9;
-    --text-secondary: #A69C8C;
-    --text-muted: #6E6459;
-    --success: #8CAB6E;
-    --error: #D9695A;
-    --radius: 10px;
+    --color-warm-bone: #fafaf9;
+    --color-paper-white: #ffffff;
+    --color-stone-mist: #e7e5e4;
+    --color-bark-grey: #79716b;
+    --color-charcoal: #292524;
+    --color-obsidian: #0c0a09;
+    --color-pebble: #a6a09b;
+    --color-electric-indigo: #615fff;
+    --color-deep-violet: #4f39f6;
+    --color-terracotta: #d97757;
+    --color-lichen-green: #5ea500;
+    --color-tide-teal: #22b8cd;
+    --color-alarm-red: #ff0000;
+    --font-geist: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-cooper-ltbt: Georgia, 'Times New Roman', serif;
+    --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --shadow-xl: rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px;
+    --radius-buttons: 8px;
+    --radius-inputs: 12px;
+    --radius-cards: 16px;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     min-height: 100vh;
-    background: var(--bg);
-    color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--color-warm-bone);
+    color: var(--color-charcoal);
+    font-family: var(--font-geist);
+    padding: 24px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(97, 95, 255, 0.10), transparent 28%),
+      radial-gradient(circle at 82% 6%, rgba(217, 119, 87, 0.10), transparent 24%);
+  }
+  .shell {
+    width: min(100%, 1200px);
+    margin: 0 auto;
+    position: relative;
+  }
+  .top-nav {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 16px 0 40px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--color-charcoal);
+    border-radius: 9999px;
+    color: var(--color-electric-indigo);
+    font-size: 18px;
+    line-height: 1;
+  }
+  .nav-actions { display: flex; gap: 12px; align-items: center; }
+  .nav-actions .button { width: auto; text-decoration: none; }
+  .nav-link {
+    color: var(--color-charcoal);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    text-transform: uppercase;
   }
   .card {
     width: 100%;
-    max-width: 640px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    max-width: 760px;
+    margin: 0 auto 40px;
+    background: var(--color-paper-white);
+    border: 1px solid var(--color-stone-mist);
+    border-radius: var(--radius-cards);
+    box-shadow: var(--shadow-xl);
     padding: 40px;
   }
+  .hero { text-align: center; margin-bottom: 32px; }
   .eyebrow {
+    font-family: var(--font-geist-mono);
     font-size: 12px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.10em;
     text-transform: uppercase;
-    color: var(--accent);
-    margin: 0 0 8px;
+    color: var(--color-bark-grey);
+    margin: 0 0 16px;
     font-weight: 600;
   }
   h1 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 26px;
-    font-weight: 600;
-    margin: 0 0 8px;
-    letter-spacing: -0.01em;
+    font-family: var(--font-cooper-ltbt);
+    font-size: clamp(44px, 8vw, 80px);
+    font-weight: 400;
+    line-height: 1.1;
+    margin: 0 0 16px;
+    color: var(--color-charcoal);
+    letter-spacing: normal;
   }
+  h1 em { font-style: italic; }
   .sub {
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin: 0 0 32px;
-    line-height: 1.6;
+    color: var(--color-bark-grey);
+    font-size: 18px;
+    margin: 0 auto;
+    line-height: 1.56;
+    max-width: 640px;
   }
+  form {
+    display: grid;
+    gap: 16px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-stone-mist);
+  }
+  .field { display: grid; gap: 8px; }
   label {
     display: block;
-    font-size: 13px;
+    font-family: var(--font-geist-mono);
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-charcoal);
   }
   textarea, input[type="email"] {
     width: 100%;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text-primary);
-    font-size: 14px;
-    font-family: inherit;
-    padding: 12px 14px;
-    margin-bottom: 20px;
+    background: var(--color-paper-white);
+    border: 1px solid var(--color-stone-mist);
+    border-radius: var(--radius-inputs);
+    color: var(--color-charcoal);
+    font-size: 16px;
+    font-family: var(--font-geist);
+    padding: 12px 16px;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
-  textarea { min-height: 160px; resize: vertical; line-height: 1.6; }
+  textarea { min-height: 176px; resize: vertical; line-height: 1.5; }
   textarea:focus, input:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(192, 133, 82, 0.15);
+    border-color: var(--color-electric-indigo);
+    box-shadow: 0 0 0 3px rgba(97, 95, 255, 0.15);
   }
-  textarea::placeholder, input::placeholder { color: var(--text-muted); }
-  button {
+  textarea::placeholder, input::placeholder { color: var(--color-pebble); }
+  button, .button {
     width: 100%;
-    background: var(--accent);
-    color: #1A140D;
+    background: var(--color-electric-indigo);
+    color: var(--color-paper-white);
     border: none;
-    border-radius: var(--radius);
-    padding: 14px;
-    font-size: 15px;
+    border-radius: var(--radius-buttons);
+    padding: 12px 16px;
+    font-size: 14px;
     font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
   }
-  button:hover:not(:disabled) { background: var(--accent-bright); }
-  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:hover:not(:disabled), .button:hover { background: var(--color-deep-violet); }
+  button:focus-visible { outline: 2px solid var(--color-electric-indigo); outline-offset: 2px; }
   button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .ghost-button {
+    background: transparent;
+    color: var(--color-charcoal);
+    border: 1px solid var(--color-stone-mist);
+    text-decoration: none;
+  }
+  .ghost-button:hover { background: transparent; border-color: var(--color-charcoal); }
   .status {
     margin-top: 20px;
     padding: 16px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    line-height: 1.6;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.43;
     display: none;
+    background: var(--color-warm-bone);
+    border: 1px solid var(--color-stone-mist);
   }
   .status.show { display: block; }
-  .status.success { background: rgba(140, 171, 110, 0.1); border: 1px solid rgba(140, 171, 110, 0.3); color: var(--success); }
-  .status.error { background: rgba(217, 105, 90, 0.1); border: 1px solid rgba(217, 105, 90, 0.3); color: var(--error); }
-  .status.queued { background: rgba(192, 133, 82, 0.1); border: 1px solid rgba(192, 133, 82, 0.3); color: var(--accent-bright); }
-  .status strong { display: block; margin-bottom: 4px; color: var(--text-primary); }
-  .jobs {
-    margin-top: 18px;
-    display: grid;
-    gap: 10px;
-  }
+  .status.success { border-color: var(--color-lichen-green); color: var(--color-charcoal); }
+  .status.error { border-color: var(--color-alarm-red); color: var(--color-charcoal); }
+  .status.queued { border-color: var(--color-electric-indigo); color: var(--color-charcoal); }
+  .status strong { display: block; margin-bottom: 4px; color: var(--color-charcoal); }
+  .jobs { margin-top: 24px; display: grid; gap: 12px; }
   .job-card {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px;
-    font-size: 12px;
-    line-height: 1.5;
+    background: var(--color-paper-white);
+    border: 1px solid var(--color-stone-mist);
+    border-radius: 8px;
+    padding: 24px;
+    font-size: 14px;
+    line-height: 1.43;
+    color: var(--color-bark-grey);
   }
-  .job-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 6px;
-    font-weight: 600;
-  }
-  .job-id { color: var(--text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .job-queued { color: var(--accent-bright); }
-  .job-processing, .job-drafting, .job-waiting, .job-sending { color: var(--accent); }
-  .job-sent { color: var(--success); }
-  .job-draft_failed, .job-send_failed, .job-send_unknown, .job-failed, .job-rejected { color: var(--error); }
-  .jobs-empty {
-    color: var(--text-muted);
-    font-size: 12px;
-    margin-top: 12px;
-  }
-  .job-actions {
-    margin-top: 8px;
-  }
-  .retry-btn {
-    width: auto;
-    display: inline-block;
-    background: transparent;
-    color: var(--accent-bright);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .retry-btn:hover:not(:disabled) { background: rgba(192, 133, 82, 0.12); border-color: var(--accent); }
-  .retry-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .footnote {
-    margin-top: 24px;
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.6;
-  }
-  @media (max-width: 480px) {
+  .job-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-weight: 600; }
+  .job-id { color: var(--color-pebble); font-family: var(--font-geist-mono); }
+  .job-queued, .job-processing, .job-drafting, .job-waiting, .job-sending { color: var(--color-electric-indigo); }
+  .job-sent { color: var(--color-lichen-green); }
+  .job-draft_failed, .job-send_failed, .job-send_unknown, .job-failed, .job-rejected { color: var(--color-alarm-red); }
+  .jobs-empty, .footnote { color: var(--color-bark-grey); font-size: 12px; line-height: 1.6; }
+  .jobs-empty { margin-top: 16px; }
+  .job-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-stone-mist); }
+  .retry-btn { width: auto; display: inline-block; background: transparent; color: var(--color-charcoal); border: 1px solid var(--color-stone-mist); padding: 8px 12px; font-size: 12px; }
+  .retry-btn:hover:not(:disabled) { background: transparent; border-color: var(--color-charcoal); }
+  .footnote { margin: 24px 0 0; padding-top: 24px; border-top: 1px solid var(--color-stone-mist); }
+  @media (max-width: 640px) {
+    body { padding: 16px; }
+    .top-nav { padding-bottom: 24px; }
+    .nav-actions { display: none; }
     .card { padding: 28px 20px; }
-    h1 { font-size: 22px; }
+    .sub { font-size: 16px; }
   }
 </style>
 </head>
 <body>
+  <main class="shell">
+    <nav class="top-nav" aria-label="Primary">
+      <div class="brand"><span class="brand-mark">♣</span><span>AutoSend</span></div>
+      <div class="nav-actions">
+        <a class="nav-link" href="#outreach-form">Log in</a>
+        <a class="button" href="#outreach-form">Sign up</a>
+      </div>
+    </nav>
+
   <div class="card">
-    <p class="eyebrow">Automated · queued and sent in the background</p>
-    <h1>LinkedIn outreach</h1>
-    <p class="sub">Paste a LinkedIn post and the recipient's email. Gemini drafts a personalized note, attaches your resume, and sends it a little later to stay on a human-like pace. You'll see it update below — no need to keep the tab open.</p>
+    <section class="hero">
+      <p class="eyebrow">Automated · queued and sent in the background</p>
+      <h1>LinkedIn outreach for <em>teams</em></h1>
+      <p class="sub">Paste a LinkedIn post and the recipient's email. Gemini drafts a personalized note, attaches your resume, and sends it a little later to stay on a human-like pace.</p>
+    </section>
 
     <form id="outreach-form">
-      <label for="postText">LinkedIn post</label>
-      <textarea id="postText" placeholder="Paste the full post text here..." required></textarea>
+      <div class="field">
+        <label for="postText">LinkedIn post</label>
+        <textarea id="postText" placeholder="Paste the full post text here..." required></textarea>
+      </div>
 
-      <label for="recipientEmail">Recipient email</label>
-      <input type="email" id="recipientEmail" placeholder="name@company.com" required>
+      <div class="field">
+        <label for="recipientEmail">Recipient email</label>
+        <input type="email" id="recipientEmail" placeholder="name@company.com" required>
+      </div>
 
       <button type="submit" id="submitBtn">Queue and send</button>
     </form>
@@ -198,6 +267,7 @@
 
     <p class="footnote">Every draft passes a safety check before sending. If it comes back empty, too short, or with unfilled placeholders, nothing goes out and the reason shows here. Sends are queued and spaced out automatically to avoid looking like a script — you don't need to wait on this page.</p>
   </div>
+  </main>
 
   <script>
     const form = document.getElementById('outreach-form');
