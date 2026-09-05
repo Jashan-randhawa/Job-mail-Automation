@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoSend — Intelligent Job Outreach</title>
+<script>
+  (function(){
+    try {
+      const saved = localStorage.getItem('autosend-theme');
+      const dark = saved === 'dark' || (!saved && matchMedia('(prefers-color-scheme: dark)').matches);
+      if (dark) document.documentElement.dataset.theme = 'dark';
+    } catch (_e) {}
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Ambient background system: shows through sections that don't paint
+     their own background; hidden behind the hero's opaque painterly scene -->
+<div class="ambient" id="ambientBg" aria-hidden="true">
+  <div class="ambient-orb ambient-orb--a"></div>
+  <div class="ambient-orb ambient-orb--b"></div>
+  <div class="ambient-orb ambient-orb--c"></div>
+  <div class="ambient-grid"></div>
+</div>
+
+<!-- Floating pill nav -->
+<header class="top-nav">
+  <nav class="nav-inner" aria-label="Primary">
+    <span class="nav-sun" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 18h16"/><path d="M6 18a6 6 0 0 1 12 0"/><path d="M12 8V6"/><path d="M8 9 7 7.8"/><path d="M16 9l1-1.2"/></svg>
+    </span>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links" id="navLinks">
+      <a href="#vision">Vision</a>
+      <a href="#story">Workflow</a>
+      <a href="#product">Product</a>
+    </div>
+    <a class="nav-cta" href="#product">Start a send
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m11 8 4 4-4 4"/></svg>
+    </a>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+      <span class="theme-toggle-icon theme-toggle-icon--light" aria-hidden="true">☀</span>
+      <span class="theme-toggle-thumb" aria-hidden="true"></span>
+      <span class="theme-toggle-icon theme-toggle-icon--dark" aria-hidden="true">☾</span>
+    </button>
+  </nav>
+</header>
+
+<!-- HERO: painterly sunset scene -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-parallax" id="heroParallax">
+    <div class="hero-art">
+      <div class="hero-engine-wrap" id="heroEngineWrap">
+        <canvas id="engineCanvas" class="engine-canvas" width="960" height="540" role="img" aria-label="Animated diagram of the AutoSend engine disassembling into its components and reassembling"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-clock" aria-hidden="true">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <b id="clockTime">–:––</b><span id="clockZone">LOCAL</span>
+  </div>
+
+  <div class="hero-card">
+    <h1 id="hero-title">Automated job outreach, thoughtfully done.</h1>
+    <p>AutoSend is an applied AI workspace that reads the role, matches your resume, and writes the email you would have written on your best day.</p>
+    <a class="hero-link" href="#product">Start a send
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m11 8 4 4-4 4"/></svg>
+    </a>
+  </div>
+
+  <p class="hero-side">Thoughtful outreach is on the horizon, and we're sending it today.</p>
+</section>
+
+<div class="hairlines" aria-hidden="true"></div>
+
+<!-- VISION: workflow video + word-by-word reveal -->
+<section class="vision" id="vision">
+  <div class="shell vision-grid">
+    <div class="workflow-video-wrap" id="workflowVideoWrap">
+      <video id="workflowVideo" class="workflow-video" autoplay muted loop playsinline preload="metadata" aria-label="Job Mail Automation workflow animation">
+        <source src="assets/job-mail-workflow.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="vision-copy">
+      <p class="small">We envision a world where anyone with a resume and a little curiosity can reach the right person.</p>
+      <p class="small">A world where someone can wake up, see a role they love, paste it, and send a first email that sounds like them — before coffee.</p>
+      <h2 class="word-reveal" id="wordReveal">Where sending outreach you're proud of is as easy as pasting a job description.</h2>
+    </div>
+  </div>
+</section>
+
+<!-- STORY: sticky scroll-driven diagram, Fig 1–5 -->
+<section class="story" id="story">
+  <div class="shell">
+    <div class="story-intro">
+      <div class="story-copy">
+        <h2 class="story-statement" data-reveal>Every application deserves a real first email, but most live in <span class="ghost">a hundred tabs</span> and go out one by one.</h2>
+        <h2 class="story-statement" data-reveal data-reveal-delay="1">They need a coordinator.</h2>
+      </div>
+      <div class="story-visual" data-reveal="scale" data-reveal-delay="2" aria-hidden="true">
+        <img src="img/ChatGPT Image Aug 24, 2026, 08_31_51 PM.png" alt="">
+      </div>
+    </div>
+  </div>
+
+  <div class="story-tall" id="storyTall">
+    <div class="shell story-sticky">
+      <div class="stage-col">
+        <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="stage" data-stage="0"><h3>Scattered applications</h3><p>Applications go out one at a time, each rewritten from scratch, each slightly off in tone.</p></div>
+        <div class="stage" data-stage="1"><h3>Adding context</h3><p>Your resume and the role's requirements become shared memory for every draft.</p></div>
+        <div class="stage" data-stage="2"><h3>Coordinating the queue</h3><p>One coordinator spaces sends, tracks replies, and keeps everything human-paced.</p></div>
+        <div class="stage" data-stage="3"><h3>Personalizing at scale</h3><p>Every message aligns to the role without losing the thread of your experience.</p></div>
+        <div class="stage" data-stage="4"><h3>Automating outreach</h3><p>Outreach runs while you sleep — and every send stays visible, retryable, and safe.</p></div>
+      </div>
+
+      <div>
+        <div class="fig-card"><div class="fig-inner">
+          <div class="story-applications" id="storyApplications">
+            <article class="application-card application-card--01"><strong>Frontend Developer</strong><span>Acme Inc.</span><small>careers@acme.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--sent">Sent</b></article>
+            <article class="application-card application-card--02"><strong>Product Designer</strong><span>Studio One</span><small>hello@studioone.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--sent">Sent</b></article>
+            <article class="application-card application-card--03"><strong>Backend Engineer</strong><span>DataCorp</span><small>jobs@datacorp.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--sent">Sent</b></article>
+            <article class="application-card application-card--04"><strong>UI Developer</strong><span>PixelPerfect</span><small>hr@pixelperfect.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--draft">Draft</b></article>
+            <article class="application-card application-card--05"><strong>Full Stack Developer</strong><span>DevNova</span><small>apply@devnova.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--draft">Draft</b></article>
+            <article class="application-card application-card--06"><strong>Software Engineer</strong><span>CodeBase</span><small>hiring@codebase.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--sent">Sent</b></article>
+            <article class="application-card application-card--07"><strong>React Developer</strong><span>WebCraft</span><small>jobs@webcraft.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--draft">Draft</b></article>
+            <article class="application-card application-card--08"><strong>Frontend Engineer</strong><span>Bright UI</span><small>careers@brightui.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--sent">Sent</b></article>
+            <article class="application-card application-card--09"><strong>Mobile Developer</strong><span>Appify</span><small>talent@appify.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--draft">Draft</b></article>
+            <article class="application-card application-card--10"><strong>DevOps Engineer</strong><span>CloudNet</span><small>ops@cloudnet.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--sent">Sent</b></article>
+            <article class="application-card application-card--11"><strong>QA Engineer</strong><span>Testify Labs</span><small>join@testifylabs.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--draft">Draft</b></article>
+            <article class="application-card application-card--12"><strong>SDE Intern</strong><span>FutureWorks</span><small>interns@futureworks.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--draft">Draft</b></article>
+            <article class="application-card application-card--13"><strong>Java Developer</strong><span>Enterprise Solutions</span><small>jobs@enterprises.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--sent">Sent</b></article>
+            <article class="application-card application-card--14"><strong>Backend Developer</strong><span>ServerRoom</span><small>careers@serverroom.com</small><i class="application-icon" aria-hidden="true">&#9993;</i><b class="application-status application-status--sent">Sent</b></article>
+          </div>
+          <div class="story-context" id="storyContext" aria-hidden="true">
+            <svg class="context-lines" viewBox="0 0 640 400" aria-hidden="true">
+              <path d="M90 72 Q190 100 270 168"/><path d="M320 48 Q320 105 320 145"/><path d="M550 72 Q450 100 370 168"/>
+              <path d="M72 200 Q170 200 270 200"/><path d="M568 200 Q470 200 370 200"/>
+              <path d="M92 328 Q190 295 270 232"/><path d="M320 352 Q320 295 320 255"/><path d="M548 328 Q450 295 370 232"/>
+            </svg>
+            <article class="context-card context-card--01"><i aria-hidden="true">&#9632;</i><strong>Company Information</strong></article>
+            <article class="context-card context-card--02"><i aria-hidden="true">&#9744;</i><strong>Role Requirements</strong></article>
+            <article class="context-card context-card--03"><i aria-hidden="true">&#60;&#47;&#62;</i><strong>Skills &amp; Technologies</strong></article>
+            <article class="context-card context-card--04"><i aria-hidden="true">&#10003;</i><strong>Key Responsibilities</strong></article>
+            <article class="context-card context-card--05"><i aria-hidden="true">&#9733;</i><strong>Experience Level</strong></article>
+            <article class="context-card context-card--06"><i aria-hidden="true">&#9671;</i><strong>Preferred Qualifications</strong></article>
+            <article class="context-card context-card--07"><i aria-hidden="true">&#9633;</i><strong>Job Description</strong></article>
+            <article class="context-card context-card--08"><i aria-hidden="true">&#9678;</i><strong>Location &amp; Work Mode</strong></article>
+            <article class="context-card context-card--09"><i aria-hidden="true">&#9678;</i><strong>Company Goals</strong></article>
+            <article class="context-card context-card--10"><i aria-hidden="true">&#9671;</i><strong>Team Context</strong></article>
+            <div class="context-core"><span aria-hidden="true">&#9632;</span><strong>Your Resume</strong><b>Shared Context</b></div>
+          </div>
+          <div class="story-queue" id="storyQueue" aria-hidden="true">
+            <svg class="queue-system" viewBox="0 0 640 400" role="img" aria-label="A coordinated queue of outreach messages">
+              <g class="queue-paths" fill="none" stroke="var(--color-signal-blue)" stroke-width="1.4" stroke-dasharray="3 7" opacity=".55">
+                <ellipse cx="320" cy="200" rx="230" ry="142"/><path d="M320 58C320 110 320 128 320 145M550 200C488 200 440 200 375 200M320 342C320 290 320 272 320 255M90 200C152 200 200 200 265 200"/>
+              </g>
+              <g class="queue-items" fill="var(--color-paper)" font-family="var(--font-ui)">
+                <g class="queue-item queue-item-1"><rect x="278" y="28" width="84" height="48" rx="7" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="290" y="48" fill="var(--color-graphite)" font-size="11" font-weight="600">#1001</text><text x="290" y="64" fill="#8a5622" font-size="10" font-weight="500">Queued</text></g>
+                <g class="queue-item queue-item-2"><rect x="496" y="84" width="102" height="48" rx="7" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="508" y="104" fill="var(--color-graphite)" font-size="11" font-weight="600">#1002</text><text x="508" y="120" fill="#2b6e91" font-size="10" font-weight="500">Sending</text></g>
+                <g class="queue-item queue-item-3"><rect x="496" y="268" width="102" height="48" rx="7" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="508" y="288" fill="var(--color-graphite)" font-size="11" font-weight="600">#1003</text><text x="508" y="304" fill="#3c7850" font-size="10" font-weight="500">Sent</text></g>
+                <g class="queue-item queue-item-4"><rect x="278" y="324" width="84" height="48" rx="7" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="290" y="344" fill="var(--color-graphite)" font-size="11" font-weight="600">#1004</text><text x="290" y="360" fill="#69548d" font-size="10" font-weight="500">Reply</text></g>
+                <g class="queue-item queue-item-5"><rect x="42" y="268" width="102" height="48" rx="7" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="54" y="288" fill="var(--color-graphite)" font-size="11" font-weight="600">#1005</text><text x="54" y="304" fill="#8a5622" font-size="10" font-weight="500">Queued</text></g>
+                <g class="queue-item queue-item-6"><rect x="42" y="84" width="102" height="48" rx="7" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="54" y="104" fill="var(--color-graphite)" font-size="11" font-weight="600">#1006</text><text x="54" y="120" fill="#3c7850" font-size="10" font-weight="500">Sent</text></g>
+              </g>
+              <g class="queue-coordinator"><circle cx="320" cy="200" r="61" fill="var(--color-paper)" stroke="var(--color-signal-blue)" stroke-width="1.5"/><circle cx="320" cy="200" r="52" fill="none" stroke="var(--color-mist)"/><text x="320" y="190" text-anchor="middle" fill="var(--color-graphite)" font-family="var(--font-display)" font-size="16">Coordinator</text><text x="320" y="210" text-anchor="middle" fill="var(--color-ash)" font-family="var(--font-ui)" font-size="9">Spaces sends</text><text x="320" y="224" text-anchor="middle" fill="var(--color-ash)" font-family="var(--font-ui)" font-size="9">Tracks replies</text></g>
+              <g class="queue-status" fill="var(--color-signal-blue)"><circle cx="320" cy="78" r="3"/><circle cx="468" cy="200" r="3"/><circle cx="320" cy="322" r="3"/><circle cx="172" cy="200" r="3"/></g>
+            </svg>
+          </div>
+          <div class="story-personalization" id="storyPersonalization" aria-hidden="true">
+            <svg class="personalization-system" viewBox="0 0 640 400" role="img" aria-label="Personalization engine adapting experience into role-specific messages">
+              <g class="personalization-paths" fill="none" stroke="var(--color-signal-blue)" stroke-width="1.3" stroke-dasharray="3 7" opacity=".55"><path d="M320 200C250 150 150 100 90 72M320 200C320 145 320 105 320 72M320 200C390 150 490 100 550 72M320 200C250 250 150 300 90 328M320 200C320 255 320 295 320 328M320 200C390 250 490 300 550 328"/></g>
+              <g class="personalization-core"><circle cx="320" cy="200" r="64" fill="var(--color-paper)" stroke="var(--color-signal-blue)" stroke-width="1.5"/><path d="m320 158 5 11 12 5-12 5-5 12-5-12-12-5 12-5z" fill="var(--color-signal-blue)" opacity=".8"/><text x="320" y="214" text-anchor="middle" fill="var(--color-graphite)" font-family="var(--font-display)" font-size="15">Personalization</text><text x="320" y="230" text-anchor="middle" fill="var(--color-ash)" font-family="var(--font-ui)" font-size="9">Keeps your voice</text></g>
+              <g class="personalization-items" fill="var(--color-paper)" font-family="var(--font-ui)">
+                <g class="personalization-item"><rect x="28" y="42" width="124" height="60" rx="8" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="40" y="63" fill="var(--color-graphite)" font-size="11" font-weight="600">Acme Inc.</text><text x="40" y="78" fill="var(--color-ash)" font-size="10">Frontend Engineer</text><text x="40" y="93" fill="#25749a" font-size="9" font-weight="500">Personalized</text></g>
+                <g class="personalization-item"><rect x="258" y="18" width="124" height="60" rx="8" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="270" y="39" fill="var(--color-graphite)" font-size="11" font-weight="600">Greenfield</text><text x="270" y="54" fill="var(--color-ash)" font-size="10">Product Designer</text><text x="270" y="69" fill="#3c7850" font-size="9" font-weight="500">Personalized</text></g>
+                <g class="personalization-item"><rect x="488" y="42" width="124" height="60" rx="8" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="500" y="63" fill="var(--color-graphite)" font-size="11" font-weight="600">DataCorp</text><text x="500" y="78" fill="var(--color-ash)" font-size="10">Data Scientist</text><text x="500" y="93" fill="#69548d" font-size="9" font-weight="500">Personalized</text></g>
+                <g class="personalization-item"><rect x="28" y="298" width="124" height="60" rx="8" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="40" y="319" fill="var(--color-graphite)" font-size="11" font-weight="600">WebCraft</text><text x="40" y="334" fill="var(--color-ash)" font-size="10">React Developer</text><text x="40" y="349" fill="#25749a" font-size="9" font-weight="500">Personalized</text></g>
+                <g class="personalization-item"><rect x="258" y="322" width="124" height="60" rx="8" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="270" y="343" fill="var(--color-graphite)" font-size="11" font-weight="600">TechNova</text><text x="270" y="358" fill="var(--color-ash)" font-size="10">Software Engineer</text><text x="270" y="373" fill="#3c7850" font-size="9" font-weight="500">Personalized</text></g>
+                <g class="personalization-item"><rect x="488" y="298" width="124" height="60" rx="8" fill="var(--color-paper)" stroke="var(--color-mist)" stroke-width="1.2"/><text x="500" y="319" fill="var(--color-graphite)" font-size="11" font-weight="600">Appify</text><text x="500" y="334" fill="var(--color-ash)" font-size="10">Mobile Developer</text><text x="500" y="349" fill="#93611f" font-size="9" font-weight="500">Personalized</text></g>
+              </g>
+            </svg>
+          </div>
+          <div class="story-automation" id="storyAutomation" aria-hidden="true">
+            <svg class="automation-system" viewBox="0 0 640 400" role="img" aria-label="Automated outreach with queued, sent, and replied messages">
+              <g class="automation-paths" fill="none" stroke="var(--color-signal-blue)" stroke-width="1.3" stroke-dasharray="3 7" opacity=".55"><ellipse cx="320" cy="190" rx="220" ry="135"/><path d="M320 55V112M540 190H430M320 325V268M100 190H210"/></g>
+              <g class="automation-items" font-family="var(--font-ui)">
+                <g class="automation-item"><circle cx="320" cy="50" r="42" fill="var(--color-paper)" stroke="var(--color-mist)"/><text x="320" y="49" text-anchor="middle" fill="var(--color-graphite)" font-size="11" font-weight="600">Acme Inc.</text><text x="320" y="64" text-anchor="middle" fill="#3c7850" font-size="9" font-weight="500">Sent · 2:15 AM</text></g>
+                <g class="automation-item"><circle cx="532" cy="112" r="42" fill="var(--color-paper)" stroke="var(--color-mist)"/><text x="532" y="111" text-anchor="middle" fill="var(--color-graphite)" font-size="11" font-weight="600">Greenfield</text><text x="532" y="126" text-anchor="middle" fill="#69548d" font-size="9" font-weight="500">Scheduled</text></g>
+                <g class="automation-item"><circle cx="532" cy="268" r="42" fill="var(--color-paper)" stroke="var(--color-mist)"/><text x="532" y="267" text-anchor="middle" fill="var(--color-graphite)" font-size="11" font-weight="600">CloudNet</text><text x="532" y="282" text-anchor="middle" fill="#3c7850" font-size="9" font-weight="500">Replied</text></g>
+                <g class="automation-item"><circle cx="320" cy="330" r="42" fill="var(--color-paper)" stroke="var(--color-mist)"/><text x="320" y="329" text-anchor="middle" fill="var(--color-graphite)" font-size="11" font-weight="600">DataCorp</text><text x="320" y="344" text-anchor="middle" fill="#8a5622" font-size="9" font-weight="500">Retry 1/3</text></g>
+                <g class="automation-item"><circle cx="108" cy="268" r="42" fill="var(--color-paper)" stroke="var(--color-mist)"/><text x="108" y="267" text-anchor="middle" fill="var(--color-graphite)" font-size="11" font-weight="600">WebCraft</text><text x="108" y="282" text-anchor="middle" fill="#2b6e91" font-size="9" font-weight="500">Sending</text></g>
+                <g class="automation-item"><circle cx="108" cy="112" r="42" fill="var(--color-paper)" stroke="var(--color-mist)"/><text x="108" y="111" text-anchor="middle" fill="var(--color-graphite)" font-size="11" font-weight="600">Appify</text><text x="108" y="126" text-anchor="middle" fill="#8a5622" font-size="9" font-weight="500">Queued</text></g>
+              </g>
+              <g class="automation-core"><circle cx="320" cy="190" r="75" fill="var(--color-paper)" stroke="var(--color-signal-blue)" stroke-width="1.5"/><circle cx="320" cy="177" r="13" fill="none" stroke="var(--color-signal-blue)"/><path d="M300 208c7-18 33-18 40 0M307 222h26" fill="none" stroke="var(--color-signal-blue)" stroke-linecap="round"/><text x="320" y="238" text-anchor="middle" fill="var(--color-graphite)" font-family="var(--font-display)" font-size="12">Outreach Automation</text><text x="320" y="247" text-anchor="middle" fill="var(--color-ash)" font-family="var(--font-ui)" font-size="6.5">Running while you sleep</text></g>
+              <g class="automation-status" fill="var(--color-signal-blue)"><circle cx="320" cy="102" r="3"/><circle cx="430" cy="190" r="3"/><circle cx="320" cy="278" r="3"/><circle cx="210" cy="190" r="3"/></g>
+            </svg>
+          </div>
+          <svg viewBox="0 0 640 400" aria-hidden="true">
+            <g id="loopsG" opacity="0" fill="none" stroke="#b9bdb9" stroke-dasharray="2 7">
+              <circle cx="250" cy="200" r="95"/><circle cx="390" cy="200" r="95"/>
+            </g>
+            <g id="coreG" opacity="0" fill="none" stroke="#2c2c2c">
+              <circle cx="320" cy="200" r="40"/>
+              <ellipse cx="320" cy="200" rx="12" ry="38" stroke-dasharray="2 6" stroke="#b9bdb9"/>
+            </g>
+            <g id="nodesG" fill="none" stroke="#2c2c2c" stroke-width="1.4"></g>
+            <g id="gridG" opacity="0" fill="none" stroke="#9a9a9a"></g>
+          </svg>
+        </div></div>
+        <p class="fig-cap" id="figCap">Fig. 1 — Applications sent in isolation</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHOWCASE: blue pixel-sunflower card -->
+<section class="showcase" id="showcase">
+  <div class="shell">
+    <div class="show-card">
+      <img id="skyCanvas" src="img/ChatGPT Image Aug 24, 2026, 09_08_41 PM.png" alt="" aria-hidden="true">
+
+      <div class="toast" id="toast" role="status">
+        <span class="toast-icon">A</span>
+        <div><b>Notification from AutoSend</b><small>New outreach queued for frontend@company.com</small></div>
+        <time>now</time>
+      </div>
+
+      <div class="show-content">
+        <h2 data-reveal>AutoSend lets you automate outreach with natural language</h2>
+        <p class="show-type" data-reveal data-reveal-delay="1"><span id="typeLine" data-text="AutoSend can help you with things like tailoring your first email"></span><span class="caret" aria-hidden="true"></span></p>
+        <a class="show-cta" data-reveal data-reveal-delay="2" href="#product">Start a send
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m11 8 4 4-4 4"/></svg>
+        </a>
+      </div>
+
+      <p class="show-note" data-reveal data-reveal-delay="3">
+        <svg width="26" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>
+        Everyone needs a referral; not everyone has one.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- WORKSPACE: the real product (form + ledger) -->
+<section class="workspace" id="product">
+  <div class="shell">
+    <div class="work-head" data-reveal>
+      <p class="eyebrow">The Automation</p>
+      <h2>Start a send.</h2>
+      <p>Tell AutoSend what kind of role you're targeting.</p>
+    </div>
+
+    <div class="app-panel" data-reveal data-reveal-delay="1">
+      <form id="outreach-form" class="form-grid">
+        <div class="form-field">
+          <div class="form-field-label">
+            <span class="form-field-num">01</span><span class="form-field-title" >Job Description</span>
+            <button type="button" class="paste-btn" id="pasteBtn" title="Paste from clipboard">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+              Paste
+            </button>
+          </div>
+          <textarea id="postText" placeholder="Paste the full job description or post text here... (Enter to submit, Shift+Enter for a new line)" required></textarea>
+        </div>
+        <div class="form-field">
+          <div class="form-field-label"><span class="form-field-num">02</span><span class="form-field-title">Recipient</span></div>
+          <input type="email" id="recipientEmail" placeholder="Auto-detected from the post, or enter manually" required>
+          <p class="field-hint" id="recipientEmailHint"></p>
+        </div>
+        <div class="form-field">
+          <div class="form-field-label"><span class="form-field-num">03</span><span class="form-field-title">Resume</span></div>
+          <div class="resume-doc">
+            <div><div class="resume-doc-name">resume.pdf</div><div class="resume-doc-status">Ready for personalization</div></div>
+            <svg class="resume-doc-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="button button-dark button-arrow" type="submit" id="submitBtn">Generate &amp; Send Outreach</button>
+        </div>
+      </form>
+
+      <div class="status" id="status" aria-live="polite"></div>
+
+      <div class="ledger">
+        <div class="ledger-title">Automation Activity</div>
+        <div class="jobs" id="jobs"></div>
+        <p class="jobs-empty" id="jobsEmpty">No submissions yet. Your activity will appear here.</p>
+        <p class="footnote">Paste a post with a contact email in it and the Recipient field fills itself in — override it any time. Every draft passes a safety check before sending. If it comes back empty, too short, or with unfilled placeholders, nothing goes out and the reason shows here. Sends are queued and spaced out automatically to avoid looking like a script.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer" id="siteFooter">
+  <div class="footer-ambient" aria-hidden="true">
+    <div class="footer-glow footer-glow--blue"></div>
+    <div class="footer-glow footer-glow--warm"></div>
+    <div class="footer-grid-texture"></div>
+  </div>
+
+  <div class="shell footer-inner">
+    <div class="footer-top">
+      <h2 class="footer-heading">Send better outreach.<br>Spend more time on the work.</h2>
+      <p class="footer-sub">AutoSend helps turn thoughtful job applications into consistent, personalized outreach.</p>
+      <a class="footer-cta" href="#product">Start a send
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m11 8 4 4-4 4"/></svg>
+      </a>
+    </div>
+
+    <div class="footer-signal" aria-hidden="true">
+      <span class="footer-signal-line"></span>
+      <span class="footer-signal-core">
+        <span class="footer-signal-ring"></span>
+        <span class="footer-signal-dot"></span>
+      </span>
+      <span class="footer-signal-line"></span>
+    </div>
+
+    <nav class="footer-grid" aria-label="Footer">
+      <div class="footer-col">
+        <p class="footer-col-title">Product</p>
+        <a href="#product">How it works</a>
+        <a href="#story">Workflow</a>
+        <a href="#story">Personalization</a>
+        <a href="#work">Queue</a>
+        <a href="#product">Automation</a>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Resources</p>
+        <a href="https://github.com/Jashan-randhawa/Job-mail-Automation#readme" target="_blank" rel="noopener">Documentation</a>
+        <a href="https://github.com/Jashan-randhawa/Job-mail-Automation#readme" target="_blank" rel="noopener">Guide</a>
+        <a href="https://github.com/Jashan-randhawa/Job-mail-Automation/issues" target="_blank" rel="noopener">FAQ</a>
+        <a href="https://github.com/Jashan-randhawa/Job-mail-Automation/commits/main" target="_blank" rel="noopener">Changelog</a>
+      </div>
+      <div class="footer-col">
+        <p class="footer-col-title">Connect</p>
+        <a href="https://github.com/Jashan-randhawa/Job-mail-Automation" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://jashan2978.vercel.app" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="mailto:jashanpreetsinghrandhawa65@gmail.com">Contact</a>
+        <a href="mailto:jashanpreetsinghrandhawa65@gmail.com">Email</a>
+      </div>
+      <div class="footer-col footer-brand">
+        <span class="footer-mark" aria-hidden="true"></span>
+        <p class="footer-brand-name">AutoSend</p>
+        <p class="footer-brand-tag">Thoughtful job outreach, automated.</p>
+        <p class="footer-brand-foot">Built for thoughtful outreach.</p>
+      </div>
+    </nav>
+
+    <div class="footer-status-row">
+      <span class="footer-status"><span class="footer-status-dot" aria-hidden="true"></span>Systems ready</span>
+    </div>
+
+    <div class="footer-bottom">
+      <p class="footer-copy">© 2026 AutoSend</p>
+      <div class="footer-bottom-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Status</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Cookie banner -->
+<div class="cookie" id="cookie">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 21v-8"/><path d="M12 13c0-4-3-6-7-6 0 4 3 6 7 6Z"/><path d="M12 10c0-3 2.5-5 6-5 0 3-2.5 5-6 5Z"/></svg>
+  <span>A few cookies, so things <b>grow and flow</b> just right.</span>
+  <span class="actions"><button id="cookieDecline">Decline</button><span class="sep">/</span><button id="cookieAccept" class="accept">Accept</button></span>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
+<script src="js/smooth-scroll.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

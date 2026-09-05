@@ -1,0 +1,15 @@
+{
+  "name": "Your Name",
+  "phone": "+1 555 555 5555",
+  "email": "you@example.com",
+  "portfolioLink": "yourportfolio.com",
+  "githubLink": "github.com/yourhandle",
+  "linkedinLink": "linkedin.com/in/yourhandle",
+  "degree": "B.S. Computer Science",
+  "graduationYear": "2026",
+  "availability": "immediately",
+  "resumeFilename": "Your_Name_Resume.pdf",
+  "techFacts": "NAME: {{name}}\nROLE: ...\n\nEXPERIENCE\n- ...",
+  "salesFacts": "NAME: {{name}}\nBACKGROUND: ...",
+  "customerCareFacts": "NAME: {{name}}\nBACKGROUND: ..."
+}
