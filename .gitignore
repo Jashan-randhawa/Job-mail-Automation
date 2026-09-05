@@ -1,0 +1,26 @@
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Personal data (see README: these are meant to stay out of git) ---
+profile.json
+resume/*.pdf
+!resume/PUT_RESUME_HERE.md
+
+# --- Runtime state (Path A queue persistence + dry-run drafts) ---
+data/*.json
+!data/.gitkeep
+
+# --- Dependencies / build ---
+node_modules/
+.vercel/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# --- Optional: personal application tracker, if you keep one at repo root ---
+Job_Application_Tracker.xlsx
