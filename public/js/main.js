@@ -341,8 +341,22 @@ const story = (function(){
     scrollIdleTimer = setTimeout(() => document.body.classList.remove('is-scrolling'), 150);
   }
 
+  // Navigation bar scroll effect: add 'scrolled' class when user scrolls down
+  const topNav = document.querySelector('.top-nav');
+  let navScrollThreshold = 80;
+
   function onScroll(){
     if (!REDUCED) markScrolling();
+    
+    // Update navigation bar state based on scroll position
+    if (topNav) {
+      if (scrollY > navScrollThreshold) {
+        topNav.classList.add('scrolled');
+      } else {
+        topNav.classList.remove('scrolled');
+      }
+    }
+    
     if (!queued){ queued = true; requestAnimationFrame(tick); }
   }
   addEventListener('scroll', onScroll, { passive:true });

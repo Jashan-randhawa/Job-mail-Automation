@@ -1,26 +1,72 @@
-# --- Secrets ---
-.env
-.env.*
-!.env.example
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
 
-# --- Personal data (see README: these are meant to stay out of git) ---
-profile.json
-resume/*.pdf
-!resume/PUT_RESUME_HERE.md
-
-# --- Runtime state (Path A queue persistence + dry-run drafts) ---
-data/*.json
-!data/.gitkeep
-
-# --- Dependencies / build ---
+# Dependencies
 node_modules/
-.vercel/
+venv/
+.venv/
+.env
+.env.local
+.env.*
 
-# --- OS / editor cruft ---
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Editors
+.vscode/
+.idea/
+
+# Build directories
+dist/
+build/
+target/
+.gradle/
+
+# Python specific
+*.pyc
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+
+# System files
 .DS_Store
 Thumbs.db
-*.log
-npm-debug.log*
 
-# --- Optional: personal application tracker, if you keep one at repo root ---
-Job_Application_Tracker.xlsx
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
