@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: autosend-whatsapp-service
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+    disk:
+      name: whatsapp-session
+      mountPath: /app/data
+      sizeGB: 1

@@ -1,0 +1,24 @@
+{
+  "name": "whatsapp-outreach-service",
+  "version": "1.0.0",
+  "description": "Always-on microservice that sends WhatsApp messages via Baileys for the Job Mail Automation project (Phase 1 of the WhatsApp Channel Integration Build Plan)",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "Jashan Singh",
+  "license": "ISC",
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "^6.7.24",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  }
+}
