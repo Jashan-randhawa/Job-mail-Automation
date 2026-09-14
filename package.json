@@ -13,6 +13,7 @@
   "author": "Jashan Singh",
   "license": "ISC",
   "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
