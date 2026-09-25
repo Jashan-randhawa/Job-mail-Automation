@@ -1,0 +1,8 @@
+node_modules/
+whatsapp-service/
+data/
+.env
+.env.*
+.git
+.github
+*.log
