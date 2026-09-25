@@ -1,6 +1,6 @@
 {
   "name": "@jashan-randhawa/whatsapp-outreach-service",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Always-on microservice that sends WhatsApp messages via Baileys for the Job Mail Automation project (Phase 1 of the WhatsApp Channel Integration Build Plan)",
   "main": "server.js",
   "type": "module",

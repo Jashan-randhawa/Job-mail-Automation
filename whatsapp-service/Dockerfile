@@ -2,6 +2,8 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 ENV NODE_ENV=production
+LABEL org.opencontainers.image.source="https://github.com/Jashan-randhawa/Job-mail-Automation"
+LABEL org.opencontainers.image.description="WhatsApp Outreach Microservice"
 
 # Baileys talks to WhatsApp over a raw WebSocket, not a headless browser —
 # no Chromium, so none of the Puppeteer shared-library installs the old

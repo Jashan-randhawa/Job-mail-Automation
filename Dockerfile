@@ -2,6 +2,8 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 ENV NODE_ENV=production
+LABEL org.opencontainers.image.source="https://github.com/Jashan-randhawa/Job-mail-Automation"
+LABEL org.opencontainers.image.description="Job Mail Automation Backend Service"
 
 # Install CA certificates for outbound TLS / SMTP
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -1,6 +1,6 @@
 {
   "name": "@jashan-randhawa/job-mail-automation",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Paste a LinkedIn post, auto-draft a personalized outreach email with resume attached, and send it",
   "main": "server.js",
   "type": "module",
