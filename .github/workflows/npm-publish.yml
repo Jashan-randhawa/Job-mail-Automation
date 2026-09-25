@@ -1,0 +1,54 @@
+name: Publish npm Package to GitHub Packages
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Package to publish"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - "both"
+          - "root"
+          - "whatsapp-service"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish npm Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@${{ github.repository_owner }}"
+
+      - name: Publish Root Package (@${{ github.repository_owner }}/job-mail-automation)
+        if: ${{ github.event.inputs.target == 'root' || github.event.inputs.target == 'both' || github.event_name != 'workflow_dispatch' }}
+        run: |
+          npm publish || echo "Root package publish skipped or already exists."
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish WhatsApp Microservice Package (@${{ github.repository_owner }}/whatsapp-outreach-service)
+        if: ${{ github.event.inputs.target == 'whatsapp-service' || github.event.inputs.target == 'both' || github.event_name != 'workflow_dispatch' }}
+        working-directory: ./whatsapp-service
+        run: |
+          npm publish || echo "WhatsApp service package publish skipped or already exists."
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

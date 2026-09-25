@@ -1,9 +1,16 @@
 {
-  "name": "linkedin-outreach-bot",
+  "name": "@jashan-randhawa/job-mail-automation",
   "version": "1.0.0",
   "description": "Paste a LinkedIn post, auto-draft a personalized outreach email with resume attached, and send it",
   "main": "server.js",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jashan-randhawa/Job-mail-Automation.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
