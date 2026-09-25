@@ -1,0 +1,41 @@
+services:
+  backend:
+    image: ghcr.io/jashan-randhawa/job-mail-automation:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: job-mail-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - WHATSAPP_SERVICE_URL=http://whatsapp-service:4000
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+      - ./resume:/app/resume
+    depends_on:
+      - whatsapp-service
+
+  whatsapp-service:
+    image: ghcr.io/jashan-randhawa/whatsapp-service:latest
+    build:
+      context: ./whatsapp-service
+      dockerfile: Dockerfile
+    container_name: job-mail-whatsapp
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./whatsapp-service/data:/app/data
+      - ./resume:/app/resume
