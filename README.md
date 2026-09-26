@@ -3,17 +3,20 @@
 <div align="center">
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/Jashan-randhawa/Job-mail-Automation?style=for-the-badge&logo=github&color=blue)
+![Version](https://img.shields.io/badge/version-1.4.1-blue?style=for-the-badge)
 ![Node.js Version](https://img.shields.io/badge/Node.js-v18%2B%20%7C%20ESM-339933?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express Version](https://img.shields.io/badge/Express-5.x-000000?style=for-the-badge&logo=express&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-GHCR%20Images-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![npm](https://img.shields.io/badge/npm-CLI%20%26%20Package-CB3837?style=for-the-badge&logo=npm&logoColor=white)
 ![Groq](https://img.shields.io/badge/Groq%20Cloud-Ultra--Fast%20LLM-F55036?style=for-the-badge&logo=groq&logoColor=white)
-![WhatsApp](https://img.shields.io/badge/WhatsApp-Baileys%20Protocol-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)
-![License](https://img.shields.io/badge/License-ISC-blue?style=for-the-badge)
+![WhatsApp](https://img.shields.io/badge/WhatsApp-Baileys%20WebSocket-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)
+![Wiki](https://img.shields.io/badge/docs-GitHub%20Wiki-informational?style=for-the-badge&logo=github)
 
 <br />
 
 **Autonomous, fact-grounded multichannel recruiter outreach bot powered by Groq LLMs, unpooled Gmail SMTP, and Baileys WhatsApp automation.**
 
-[Key Highlights](#-key-highlights) • [Architecture](#-system-architecture) • [Dual Execution Paths](#-two-execution-paths) • [Quickstart](#-quickstart--setup) • [Configuration](#-configuration--environment-variables) • [API Reference](#-api-reference) • [Safety & Anti-Ban](#-safety-gates--anti-ban-measures)
+[Key Highlights](#-key-highlights) • [Architecture](#-system-architecture) • [Quickstart](#-quickstart--setup) • [Docker Compose](#option-a-docker-compose-recommended) • [CLI Executable](#option-c-cli-executable--npx) • [Configuration](#-configuration--environment-variables) • [API Reference](#-api-reference) • [Safety & Anti-Ban](#-safety-gates--anti-ban-measures) • [Official Wiki](https://github.com/Jashan-randhawa/Job-mail-Automation/wiki)
 
 </div>
 
@@ -25,8 +28,10 @@
 
 1. **Instant Extraction:** Ingests raw LinkedIn posts, automatically detecting direct and obfuscated recruiter emails (`[at]`, `(at)`, `[dot]`, spaced strings) or target phone numbers.
 2. **Fact-Grounded LLM Drafting:** Leverages Groq's high-throughput LLM (`openai/gpt-oss-20b` or custom models) to classify the job (Tech, Sales, Support, Hybrid) and selectively pull matching facts from your structured profile.
-3. **Strict Safety Gates:** Discards drafts containing hallucinated tokens, placeholder brackets (`[Company]`), eligibility mismatches, or missing subject lines before outreach triggers.
-4. **Multichannel Delivery:** Delivers personalized emails via Gmail SMTP with your PDF resume attached, or transmits a personalized WhatsApp greeting + resume PDF on-demand through an authenticated Baileys WhatsApp session.
+3. **Resilient Retry Loop:** Automatically recovers from Groq JSON object schema validation failures (`400`), rate limits (`429`), and `5xx` server hiccups via jittered backoff (`GROQ_DRAFT_MAX_ATTEMPTS`).
+4. **Strict Safety Gates:** Discards drafts containing hallucinated tokens, placeholder brackets (`[Company]`), eligibility mismatches, or missing subject lines before outreach triggers.
+5. **Multichannel Delivery:** Delivers personalized emails via Gmail SMTP with your PDF resume attached, or transmits a personalized WhatsApp greeting + resume PDF on-demand through an authenticated Baileys WhatsApp session.
+6. **Deploy Anywhere:** Run as an orchestrated multi-container Docker Compose stack, standalone CLI executable via NPX, persistent Express server, or serverless Vercel edge app.
 
 ---
 
@@ -40,13 +45,13 @@
         <li><b>De-obfuscating Parser:</b> Catches <code>hr [at] company [dot] com</code>, spaced characters, and standard regex formats.</li>
         <li><b>Dynamic Fact Mapping:</b> Matches job domain with your custom <code>techFacts</code>, <code>salesFacts</code>, or <code>customerCareFacts</code>.</li>
         <li><b>Unpooled Nodemailer:</b> Dedicated, fresh SMTP handshakes to prevent stale connection hang-ups on Gmail.</li>
-        <li><b>Dry-Run Auditing:</b> Test your prompts and view output drafts saved to JSON without firing actual emails.</li>
+        <li><b>Dry-Run Auditing:</b> Test prompts and view output drafts saved to JSON without firing actual emails.</li>
       </ul>
     </td>
     <td width="50%">
       <h3>💬 WhatsApp Microservice</h3>
       <ul>
-        <li><b>Baileys Socket Integration:</b> Robust WebSocket-based WhatsApp Web protocol with persistent auth credentials.</li>
+        <li><b>Baileys Socket Integration:</b> Pure WebSocket protocol with persistent auth credentials (no heavy Chromium RAM bloat).</li>
         <li><b>Direct QR Onboarding:</b> Terminal and HTTP-streamed QR pairing via <code>/whatsapp/qr</code>.</li>
         <li><b>Document Transmission:</b> Automatically uploads and pairs candidate PDF resumes with the initial message.</li>
         <li><b>Humanized On-Demand Send:</b> Zero artificial queue delays during targeted 1-on-1 recruiter outreach sessions.</li>
@@ -60,14 +65,16 @@
         <li><b>Eligibility Guard:</b> If a post requires protected criteria or specific credentials not met in your profile, outreach skips gracefully.</li>
         <li><b>Placeholder Interceptor:</b> Never send embarrassing <code>[Hiring Manager Name]</code> or <code>[Company]</code> placeholders.</li>
         <li><b>Groq Token Rate Limiter:</b> Sliding-window RPM & TPM tracker customized for Groq free/tier budgets.</li>
+        <li><b>Server-Side Cooldown:</b> Enforces <code>POST_SEND_COOLDOWN_MS</code> (45s) on Vercel to prevent rapid burst abuse.</li>
       </ul>
     </td>
     <td width="50%">
-      <h3>⚡ Resilient Architecture</h3>
+      <h3>⚡ Resilient Architecture & Packaging</h3>
       <ul>
-        <li><b>Dual Runtime:</b> Run on persistent Node servers (Express with atomic JSON state) or serverless edge (Vercel NDJSON stream).</li>
-        <li><b>Crash-Resilient State:</b> In-memory queue state is persisted atomically via temporary file writes & renames.</li>
-        <li><b>Live Web Dashboard:</b> Responsive glassmorphic frontend with real-time SSE / NDJSON execution feedback.</li>
+        <li><b>Docker Compose Ready:</b> Multi-container stack pre-configured with volume mounts and internal DNS bridge.</li>
+        <li><b>GitHub Container Registry:</b> Automated OCI image builds pushed to <code>ghcr.io</code> on every release.</li>
+        <li><b>CLI Executable & Exports:</b> Published to GitHub Packages with runnable <code>job-mail-automation</code> bin and modular library imports.</li>
+        <li><b>Crash-Resilient State:</b> In-memory queue state is persisted atomically via temporary file writes & POSIX renames.</li>
       </ul>
     </td>
   </tr>
@@ -81,6 +88,7 @@
 flowchart TB
     subgraph Client["Frontend Dashboard / API Client"]
         UI["Web Dashboard (Vanilla JS + CSS)"]
+        CLI["CLI Tool / NPX Executable"]
         Curl["External Webhook / Script"]
     end
 
@@ -93,6 +101,7 @@ flowchart TB
     subgraph Core["Core Intelligence & Extraction Engine"]
         Extractor["Regex Email Extractor<br/>(emailExtractor.js)"]
         Classifier["Groq LLM Engine & Classifier<br/>(cerebrasService.js)"]
+        RetryLoop["Jittered Retry Loop<br/>(GROQ_DRAFT_MAX_ATTEMPTS)"]
         Safety["Pre-Send Safety Gate<br/>(draftSafety.js)"]
         Profile["Profile Resolver<br/>(profile.json > env > defaults)"]
     end
@@ -103,12 +112,14 @@ flowchart TB
     end
 
     UI -->|POST /api/send-outreach| Runtime
+    CLI -->|POST /api/send-outreach| Runtime
     Curl -->|POST /api/send-outreach| Runtime
 
     Runtime --> Extractor
     Extractor --> Classifier
+    Classifier --> RetryLoop
     Profile --> Classifier
-    Classifier --> Safety
+    RetryLoop --> Safety
     
     Safety -->|Channel: Email / Both| EmailService
     Safety -->|Channel: WhatsApp / Both| WAService
@@ -125,10 +136,10 @@ Choose the execution model that fits your infrastructure:
 
 | Feature | Path A: Express Server (`server.js`) | Path B: Serverless Function (`api/send-outreach.js`) |
 | :--- | :--- | :--- |
-| **Ideal Environment** | Long-running servers (VPS, Docker, Render, Railway, Fly.io, Localhost) | Cloudflare, AWS Lambda, Vercel Serverless |
+| **Ideal Environment** | Long-running servers (Docker Compose, VPS, Render, Railway, Localhost) | Cloudflare, AWS Lambda, Vercel Serverless |
 | **State Management** | In-memory job queue persisted atomically to `data/queue-state.json` | 100% Stateless — single invocation per outreach |
 | **Pacing Strategy** | Batched groups (`BATCH_SIZE`) with large batch delays + randomized jitter | Strict server-enforced cooldown (`POST_SEND_COOLDOWN_MS`) |
-| **Progress Reporting** | Pollable state transitions via `GET /api/status/:jobId` | Real-time NDJSON stream (`queued → drafting → drafted → sending → sent`) |
+| **Progress Reporting** | Pollable state transitions via `GET /api/status/:jobId` and `GET /api/jobs` | Real-time NDJSON stream (`queued → drafting → drafted → sending → sent`) |
 | **Queue Resilience** | Restores unprocessed and active jobs automatically after unexpected restarts | Not applicable (lifecycle ends when HTTP response finishes) |
 
 ---
@@ -137,13 +148,17 @@ Choose the execution model that fits your infrastructure:
 
 ```bash
 Job-mail-Automation/
-├── server.js                     # Main Express server: queue, batching, state machine, API routes
+├── server.js                     # Main Express server: queue, batching, state machine, API routes, CLI bin
+├── Dockerfile                    # Container definition for main backend service (GHCR publish)
+├── docker-compose.yml            # Multi-container orchestration (backend:3000 + whatsapp-service:4000)
 ├── api/
-│   └── send-outreach.js          # Stateless Vercel serverless streaming handler (Path B)
+│   ├── send-outreach.js          # Stateless Vercel serverless streaming handler (Path B)
+│   ├── whatsapp-status.js        # Serverless WhatsApp status proxy
+│   └── whatsapp/                 # QR and status proxy routes
 ├── config/
 │   └── profile.js                # Profile manager (profile.json > process.env > defaults)
 ├── services/
-│   ├── cerebrasService.js        # Groq LLM integration, prompt engineering, role classifier
+│   ├── cerebrasService.js        # Groq LLM integration, prompt engineering, role classifier, retry loop
 │   ├── emailService.js           # Nodemailer transport, unpooled Gmail SMTP, HTML rendering
 │   ├── emailExtractor.js         # Extraction regex for plain, obfuscated, and spaced emails
 │   ├── draftSafety.js            # Pre-send validation (placeholders, length, eligibility)
@@ -152,23 +167,29 @@ Job-mail-Automation/
 ├── persistence/
 │   └── store.js                  # Atomic JSON store (temp write + rename) for queue state
 ├── public/                       # Frontend web dashboard
-│   ├── index.html                # Modern UI with outreach input & channel toggles
-│   ├── styles.css                # Glassmorphic responsive styling
-│   └── script.js                 # Stream reader, status poller, and QR preview logic
+│   ├── index.html                # Modern UI with outreach input, QR viewer & channel toggles
+│   ├── css/style.css             # Glassmorphic responsive styling
+│   └── js/                       # Stream reader, status poller, and QR preview logic
 ├── resume/
 │   └── resume.pdf                # Candidate PDF resume (attached to emails and WhatsApp)
 ├── data/                         # Local persistence (gitignored queue state & dry-run logs)
 ├── profile.example.json          # Starter template for candidate background & facts
 ├── whatsapp-service/             # Dedicated WhatsApp microservice
-│   ├── server.js                 # Express server with Baileys socket integration
+│   ├── server.js                 # Express server with Baileys socket integration (port 4000)
+│   ├── Dockerfile                # Container definition for WhatsApp microservice
+│   ├── railway.json              # Railway deployment manifest
+│   ├── render.yaml               # Render Infrastructure-as-Code deployment specification
 │   ├── services/
 │   │   ├── whatsappClient.js     # Baileys connection handler, QR generator, message dispatcher
 │   │   └── whatsappPolicy.js     # Phone validator & default greeting templates
 │   ├── persistence/              # Local storage for sent contacts and Baileys session keys
-│   └── package.json              # Microservice dependencies
+│   └── package.json              # Microservice manifest (@jashan-randhawa/whatsapp-outreach-service)
+├── .github/workflows/
+│   ├── docker-publish.yml        # Multi-arch Docker build & push to GitHub Container Registry
+│   └── npm-publish.yml           # Automated package publishing to GitHub Packages
 ├── test/                         # Native Node.js test suite
 ├── vercel.json                   # Vercel serverless runtime configuration
-└── package.json                  # Root project manifest (ES Modules)
+└── package.json                  # Root project manifest & CLI definition (ES Modules)
 ```
 
 ---
@@ -176,112 +197,82 @@ Job-mail-Automation/
 ## 🚀 Quickstart & Setup
 
 ### 1. Prerequisites
-- **Node.js**: v18.0.0 or higher
+- **Node.js**: v18.0.0 or higher (Node 20+ recommended) or **Docker & Docker Compose**
 - **Gmail Account**: With [2-Step Verification](https://myaccount.google.com/signinoptions/two-step-verification) enabled
 - **Groq Cloud Account**: For ultra-fast inference ([console.groq.com](https://console.groq.com))
 - **WhatsApp Account**: On a secondary or active phone for pairing
 
-### 2. Clone & Install
+### 2. Configure Profile & Resume
+1. Copy the example profile template:
+   ```bash
+   cp profile.example.json profile.json
+   ```
+2. Edit `profile.json` with your real background facts, contact details, and achievements.
+3. Save your resume PDF as `resume/resume.pdf` (or configure `RESUME_PATH`).
+
+---
+
+### Option A: Docker Compose (Recommended)
+
+Start the entire multi-service stack with a single command:
+
 ```bash
-# Clone the repository
+docker compose up -d
+```
+
+- **Web Dashboard**: Open `http://localhost:3000`
+- **WhatsApp Microservice**: Running on port `4000`
+- **Volumes**: `./data`, `./whatsapp-service/data`, and `./resume` are mounted automatically.
+
+To pair WhatsApp:
+1. Open `http://localhost:3000` to view the QR code in the dashboard, or open `http://localhost:4000/whatsapp/qr`.
+2. Scan the QR code using WhatsApp on your phone (**Settings > Linked Devices > Link a Device**).
+
+To shut down:
+```bash
+docker compose down
+```
+
+---
+
+### Option B: Local Node.js Development
+
+```bash
+# 1. Clone repository
 git clone https://github.com/Jashan-randhawa/Job-mail-Automation.git
 cd Job-mail-Automation
 
-# Install root dependencies
+# 2. Install dependencies
 npm install
+cd whatsapp-service && npm install && cd ..
 
-# Install WhatsApp microservice dependencies
-cd whatsapp-service
-npm install
-cd ..
-```
+# 3. Configure root .env
+cp .env.example .env # edit with your GROQ_API_KEY, EMAIL_USER, EMAIL_APP_PASSWORD
 
-### 3. Add Candidate Resume
-Drop your resume PDF into `resume/resume.pdf` (or customize the path with `RESUME_PATH`).
-
-### 4. Configure Your Profile
-Copy the example profile template:
-```bash
-cp profile.example.json profile.json
-```
-Edit `profile.json` to reflect your genuine experience, achievements, and facts:
-```json
-{
-  "name": "Alex Doe",
-  "phone": "+1 555 123 4567",
-  "email": "alex.doe@example.com",
-  "portfolioLink": "alexdoe.dev",
-  "githubLink": "github.com/alexdoe",
-  "linkedinLink": "linkedin.com/in/alexdoe",
-  "degree": "B.S. Computer Science",
-  "graduationYear": "2025",
-  "availability": "immediately",
-  "techFacts": "Extensive experience with TypeScript, React, Node.js, and Distributed Systems...",
-  "salesFacts": "Track record of enterprise B2B sales development...",
-  "customerCareFacts": "High CSAT support experience in fast-paced SaaS..."
-}
-```
-
-### 5. Configure Environment Variables
-Create `.env` files in both the project root and in `whatsapp-service/`:
-
-**Root `.env` (`Job-mail-Automation/.env`):**
-```env
-# Groq API Configuration
-GROQ_API_KEY=gsk_your_groq_api_key_here
-GROQ_MODEL=openai/gpt-oss-20b
-
-# Gmail SMTP Configuration
-EMAIL_USER=your.email@gmail.com
-EMAIL_APP_PASSWORD=your_16_char_app_password
-
-# WhatsApp Microservice Connection
-WHATSAPP_SERVICE_URL=http://localhost:4000
-WHATSAPP_API_KEY=super_secure_shared_secret_123
-
-# General Configuration
-PORT=3000
-DRY_RUN=0
-```
-
-**WhatsApp Service `.env` (`Job-mail-Automation/whatsapp-service/.env`):**
-```env
-PORT=4000
-WHATSAPP_API_KEY=super_secure_shared_secret_123
-```
-
-> **How to get a Gmail App Password:**
-> 1. Go to your [Google Account Security](https://myaccount.google.com/security) settings.
-> 2. Ensure **2-Step Verification** is turned on.
-> 3. Search for **App passwords** or visit [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
-> 4. Create an entry called "Job Automation Bot" and copy the 16-character token into `EMAIL_APP_PASSWORD`.
-
----
-
-## 🏃 Running the Application
-
-### Option A: Local Full Stack (Express + WhatsApp)
-Open two terminal windows:
-
-**Terminal 1 — WhatsApp Microservice:**
-```bash
+# 4. Start WhatsApp Microservice (Terminal 1)
 cd whatsapp-service
 npm start
-```
-*On initial startup, check the console or visit `http://localhost:4000/whatsapp/qr` to pair your device.*
 
-**Terminal 2 — Main Web Server:**
-```bash
+# 5. Start Main Backend Server (Terminal 2)
 npm run dev
 ```
-Open **`http://localhost:3000`** in your browser to access the dashboard.
+
+Open `http://localhost:3000` in your browser.
 
 ---
 
-### Option B: Deploy to Vercel (Email Channel Only)
-Deploy the root repository directly to Vercel:
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
-Configure `GROQ_API_KEY`, `EMAIL_USER`, and `EMAIL_APP_PASSWORD` in your Vercel Project Environment Variables.
+### Option C: CLI Executable / NPX
+
+The package is published as an executable command on GitHub Packages:
+
+```bash
+# Run directly via npx
+npx @jashan-randhawa/job-mail-automation
+
+# Or install globally
+npm install -g @jashan-randhawa/job-mail-automation
+job-mail-automation
+```
 
 ---
 
@@ -295,17 +286,19 @@ Configure `GROQ_API_KEY`, `EMAIL_USER`, and `EMAIL_APP_PASSWORD` in your Vercel 
 | `EMAIL_USER` | `string` | **Required** | Gmail address used for sending applications |
 | `EMAIL_APP_PASSWORD` | `string` | **Required** | 16-character Google App Password |
 | `GROQ_MODEL` | `string` | `openai/gpt-oss-20b` | Groq LLM model identifier |
+| `GROQ_DRAFT_MAX_ATTEMPTS` | `number` | `3` | Automatic retry attempts for Groq schema errors (400) and rate limits (429) |
 | `GROQ_RPM_LIMIT` | `number` | `30` | Requests per minute budget |
-| `GROQ_TPM_LIMIT` | `number` | `6000` | Tokens per minute budget |
+| `GROQ_TPM_LIMIT` | `number` | `6000` | Tokens per minute budget (adjust for paid tiers) |
 | `PORT` | `number` | `3000` | Local HTTP port for Express |
-| `RESUME_PATH` | `string` | `./resume/resume.pdf` | Absolute or relative path to PDF resume |
+| `RESUME_PATH` | `string` | `./resume/resume.pdf` | Path to PDF resume |
 | `REPLY_TO_EMAIL` | `string` | `EMAIL_USER` | Optional alternative reply-to email |
-| `DRY_RUN` | `boolean` | `0` | If `1`, writes drafts to disk instead of sending |
+| `DRY_RUN` | `string/number` | `0` | If `1` or `true`, writes drafts to disk instead of sending |
 | `BATCH_SIZE` | `number` | `3` | Number of jobs per dispatch batch (Path A) |
 | `BATCH_DELAY_MS` | `number` | `2700000` (45m) | Delay between outgoing batches |
 | `MIN_SEND_INTERVAL_MS` | `number` | `45000` (45s) | Minimum pacing delay between individual sends |
 | `SEND_JITTER_MAX_MS` | `number` | `20000` (20s) | Max random jitter added to send intervals |
-| `WHATSAPP_SERVICE_URL` | `string` | `http://localhost:4000` | URL of the running WhatsApp microservice |
+| `POST_SEND_COOLDOWN_MS` | `number` | `45000` (45s) | Server-side cooldown delay for Path B |
+| `WHATSAPP_SERVICE_URL` | `string` | `http://localhost:4000` | URL of the running WhatsApp microservice (in Docker: `http://whatsapp-service:4000`) |
 | `WHATSAPP_API_KEY` | `string` | `""` | Shared security secret for microservice calls |
 
 ### WhatsApp Microservice (`whatsapp-service/`)
@@ -314,7 +307,10 @@ Configure `GROQ_API_KEY`, `EMAIL_USER`, and `EMAIL_APP_PASSWORD` in your Vercel 
 | :--- | :---: | :---: | :--- |
 | `PORT` | `number` | `4000` | Microservice server port |
 | `WHATSAPP_API_KEY` | `string` | **Required** | Header `x-api-key` required for all endpoints |
-| `WHATSAPP_PERSIST_PATH` | `string` | `data/sent-contacts.json` | Path to log of contacted numbers |
+| `WHATSAPP_SESSION_DIR` | `string` | `./data/wa-session` | Directory where Baileys authentication keys are persisted |
+| `WHATSAPP_PERSIST_PATH` | `string` | `./data/sent-contacts.json` | Path to log of contacted numbers |
+| `RESUME_ATTACHMENT_FILENAME` | `string` | `Jashanpreet_Singh_Resume.pdf` | Filename presented when attaching resume |
+| `WHATSAPP_WATCHDOG_STALL_MS` | `number` | `180000` (3m) | Threshold for self-exit recovery during stalled sockets |
 
 ---
 
@@ -340,9 +336,9 @@ POST /api/send-outreach
 {
   "jobId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
   "status": "queued",
-  "position": 1,
-  "etaSeconds": 45,
+  "channel": "both",
   "recipientEmail": "hiring@techcorp.io",
+  "recipientPhone": "+1234567890",
   "emailAutoDetected": false
 }
 ```
@@ -367,12 +363,15 @@ rejected   draft_failed  draft_failed  send_failed  send_failed / send_unknown
 
 ---
 
-### 3. WhatsApp Proxy Endpoints
+### 3. WhatsApp Microservice Endpoints
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/whatsapp/status` | Microservice connectivity status and total message count |
-| `GET` | `/api/whatsapp/qr` | Get current base64 QR code for mobile pairing |
+| `GET` | `/whatsapp/status` | Microservice connectivity status and total message count |
+| `GET` | `/whatsapp/qr` | Get current base64 QR code for mobile pairing |
+| `POST` | `/whatsapp/send` | Send direct greeting and resume PDF to `{ phone, message?, attachResume? }` |
+| `GET` | `/whatsapp/history` | Log of previously messaged contacts |
+| `GET` | `/healthz` | Public liveness probe returning `{"ok": true}` |
 
 ---
 
@@ -389,7 +388,7 @@ Mass automated messaging violates carrier and platform terms of service. This pr
 ### Email Deliverability
 - **Humanized Jitter & Pacing:** Inter-send delays of 45-65s and inter-batch pauses of 45+ minutes keep send volumes well under Google SMTP thresholds.
 - **Unpooled Connections:** Ensures every email creates a clean TLS handshake, eliminating connection reuse timeouts.
-- **Pre-Send Draft Validation:** Blocks empty drafts, excessive brevity (<80 characters), or leftover template brackets (`[Your Name]`, `[Company]`).
+- **Pre-Send Draft Validation:** Blocks empty drafts, excessive brevity (<50 characters), or leftover template brackets (`[Your Name]`, `[Company]`).
 
 ---
 
@@ -402,10 +401,17 @@ npm test
 ```
 
 Covers:
-- `test/cerebrasService.test.js`: Prompt generation, fact selection, and Groq JSON parsing.
+- `test/cerebrasServiceRetry.test.js`: Mocking Groq client for schema validation failures, 503 recovery, retry exhaustion, and non-retryable 401 errors.
+- `test/sendOutreachCooldown.test.js`: Validating server-side Path B cooldown enforcement.
 - `test/emailExtractor.test.js`: Obfuscated email syntax (`[at]`, `[dot]`, spacing, invalid patterns).
 - `test/groqRateLimiter.test.js`: Window sliding and rate pacing limits.
-- `test/queueStateMachine.test.js`: Transition guarantees, state persistence, and error recovery.
+- `test/queue.test.js`: Transition guarantees, state persistence, and error recovery.
+
+---
+
+## 📖 Complete Documentation Wiki
+
+For detailed architecture guides, environment variable references, troubleshooting FAQs, and deep dive tutorials, visit the **[Job Mail & WhatsApp Automation Official Wiki](https://github.com/Jashan-randhawa/Job-mail-Automation/wiki)**.
 
 ---
 
@@ -418,4 +424,3 @@ This project is open source and available under the [ISC License](package.json).
 <div align="center">
   <sub>Developed with precision by <a href="https://github.com/Jashan-randhawa">Jashanpreet Singh</a></sub>
 </div>
-

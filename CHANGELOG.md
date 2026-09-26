@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.4.1
+
+### Fixed
+- **OCI Container Image Linking**: Added Open Container Initiative (OCI) image source labels (`org.opencontainers.image.source` and `org.opencontainers.image.description`) in `Dockerfile`, `whatsapp-service/Dockerfile`, and `.github/workflows/docker-publish.yml` so images published to GitHub Container Registry (GHCR) link directly to the repository.
+- Version bump to 1.4.1 across root and microservice packages.
+
+---
+
+## v1.4.0 & v1.3.0
+
+### Added
+- **Multi-Container Docker Compose**: Added root `docker-compose.yml` orchestrating both `job-mail-backend` (port 3000) and `job-mail-whatsapp` (port 4000) with volume mounts for `./data`, `./whatsapp-service/data`, and `./resume`.
+- **GitHub Container Registry (GHCR) Publishing**: Automated Docker Buildx multi-arch pipeline in `.github/workflows/docker-publish.yml` pushing `ghcr.io/jashan-randhawa/job-mail-automation` and `ghcr.io/jashan-randhawa/whatsapp-service`.
+- **CLI Executable & Modular Package**: Added `bin.job-mail-automation` pointing to `server.js` with `#!/usr/bin/env node`, and exported modular subpaths (`.`, `./services/*`, `./persistence/*`, `./config/*`) for programmatic embedding.
+- **GitHub Packages npm Workflow**: Added `.github/workflows/npm-publish.yml` to publish `@jashan-randhawa/job-mail-automation` and `@jashan-randhawa/whatsapp-outreach-service`.
+- **Telemetry**: Integrated `@vercel/analytics` and `@vercel/speed-insights`.
+
+---
+
 ## v1.2.0
 
 ### Fixed
